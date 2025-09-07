@@ -1,4 +1,4 @@
-module Dijk (ForM_, Dijk (..), dijk, recon) where
+module Dijk (ForM_, Dijk, dijk, recon) where
 
 import           Control.Monad
 import           Control.Monad.State.Strict
@@ -14,6 +14,9 @@ type ForM_ a = forall m b. (Monad m) => (a -> m b) -> m ()
 
 -- | Result of 'dijk'. Feed into 'recon' to reconstruct a path.
 newtype Dijk k = Dijk (HashPSQ k Int k)
+ deriving
+  ( Show -- ^ Debugging accommodation
+  )
 
 lookup1 :: (Hashable k, Ord k) => k -> HashPSQ k Int v -> Int
 lookup1 k q = case Q.lookup k q of
