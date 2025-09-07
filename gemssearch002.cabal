@@ -44,7 +44,6 @@ library
     , mtl
     , psqueues
     , transformers
-    , unordered-containers
   default-language: GHC2024
 
 executable gemssearch002-exe
@@ -67,7 +66,6 @@ executable gemssearch002-exe
     , mtl
     , psqueues
     , transformers
-    , unordered-containers
   default-language: GHC2024
 
 test-suite gemssearch002-test
@@ -91,5 +89,4 @@ test-suite gemssearch002-test
     , mtl
     , psqueues
     , transformers
-    , unordered-containers
   default-language: GHC2024

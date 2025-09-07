@@ -27,7 +27,6 @@ dependencies:
 - psqueues
 - containers
 - transformers
-- unordered-containers
 
 ghc-options:
 - -Wall
