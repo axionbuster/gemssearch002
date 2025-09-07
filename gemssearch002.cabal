@@ -1,0 +1,95 @@
+cabal-version: 2.2
+
+-- This file has been generated from package.yaml by hpack version 0.38.1.
+--
+-- see: https://github.com/sol/hpack
+
+name:           gemssearch002
+version:        0.1.0.0
+description:    Please see the README on GitHub at <https://github.com/githubuser/gemssearch002#readme>
+homepage:       https://github.com/githubuser/gemssearch002#readme
+bug-reports:    https://github.com/githubuser/gemssearch002/issues
+author:         Author name here
+maintainer:     example@example.com
+copyright:      2025 Author name here
+license:        BSD-3-Clause
+license-file:   LICENSE
+build-type:     Simple
+extra-source-files:
+    README.md
+    CHANGELOG.md
+
+source-repository head
+  type: git
+  location: https://github.com/githubuser/gemssearch002
+
+library
+  exposed-modules:
+      Dijk
+      Lib
+  other-modules:
+      Paths_gemssearch002
+  autogen-modules:
+      Paths_gemssearch002
+  hs-source-dirs:
+      src
+  default-extensions:
+      Strict
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , hashable
+    , mtl
+    , psqueues
+    , transformers
+    , unordered-containers
+  default-language: GHC2024
+
+executable gemssearch002-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_gemssearch002
+  autogen-modules:
+      Paths_gemssearch002
+  hs-source-dirs:
+      app
+  default-extensions:
+      Strict
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , gemssearch002
+    , hashable
+    , mtl
+    , psqueues
+    , transformers
+    , unordered-containers
+  default-language: GHC2024
+
+test-suite gemssearch002-test
+  type: exitcode-stdio-1.0
+  main-is: Spec.hs
+  other-modules:
+      Paths_gemssearch002
+  autogen-modules:
+      Paths_gemssearch002
+  hs-source-dirs:
+      test
+  default-extensions:
+      Strict
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , gemssearch002
+    , hashable
+    , mtl
+    , psqueues
+    , transformers
+    , unordered-containers
+  default-language: GHC2024

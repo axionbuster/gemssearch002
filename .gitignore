@@ -1,0 +1,8 @@
+.stack-work/
+dist-newstyle/
+*.hi
+*.o
+*.prof
+.DS_Store
+thumbs.db
+*~
