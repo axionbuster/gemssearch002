@@ -34,7 +34,7 @@ dijk weight neighbors stop start = entry where
  go = do
   bq0 <- get
   case Q.minView bq0 of
-   Just (ux, _, _, _) | stop ux -> Dijk <$!> get
+   Just (ux, _, _, _) | stop ux -> Dijk <$> get
    Just (ux, ud, _, bq1) -> do
     put bq1
     neighbors ux $ \vx -> do
@@ -43,7 +43,7 @@ dijk weight neighbors stop start = entry where
      let vd1 = ud + weight ux vx
      when (vd1 < vd0) $ put (Q.insert vx vd1 ux bq2)
     go
-   Nothing -> Dijk <$!> get
+   Nothing -> Dijk <$> get
 {-# INLINE dijk #-}
 
 recon :: (Hashable k, Ord k) => Dijk k -> k -> ([k], Int)
