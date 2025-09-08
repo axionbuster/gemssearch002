@@ -45,7 +45,7 @@ ghc-options:
 - -ddump-to-file
 - -ddump-simpl
 
-default-language: GHC2024
+language: GHC2024
 default-extensions:
 - Strict
 

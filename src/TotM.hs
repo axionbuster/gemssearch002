@@ -1,8 +1,9 @@
 {-# LANGUAGE PatternSynonyms #-}
 
 module TotM
- ( GameState, TotM, Direction (..), Cell
- , solve, createBoard, showBoard
+ ( GameState (..), TotM, Direction (..), Cell, Outcome (..)
+ , pattern Air, pattern Bat, pattern Gem, pattern Obs
+ , solve, createBoard, showBoard, applyGravity
  ) where
 
 import           Control.Monad
