@@ -74,6 +74,8 @@ For each test case:
 - If solvable, show the initial state and each step with gravity direction
 - Display the final "Won!" or "Lost!" message
 
+Note: the output format is fluid and may change anytime as long as it remains human-readable.
+
 ### Example Output
 
 ```
@@ -100,7 +102,7 @@ Step 1: Apply gravity Down
 ..#@..
 
 Step 2: Apply gravity Right
-...
+(...)
 Won!
 ```
 
@@ -128,9 +130,8 @@ stack test
 
 ## Implementation Details
 
-- **Language:** Haskell with STRefs for efficient mutable arrays
+- **Language:** Haskell, but with efficient mutable arrays
 - **Core Module:** `TotM.hs` contains the game logic and solver
-- **Dependencies:** Uses custom Dijkstra implementation in `Dijk.hs`
 - **Performance:** Handles complex puzzles with multiple gems efficiently
 
 ## Example Usage
