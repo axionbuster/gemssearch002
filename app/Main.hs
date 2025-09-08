@@ -1,9 +1,12 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Main (main) where
 
+import           Control.Exception       (evaluate)
 import           Control.Monad
 import           Control.Monad.ST.Strict
-import           TotM
+import           TotM                    hiding (Left, Right)
+import           UnliftIO.Async          (race)
+import           UnliftIO.Concurrent     (threadDelay)
 
 charToCell :: Char -> Cell
 charToCell '.' = Air
@@ -34,9 +37,12 @@ processTestCase testNum = do
 
  putStrLn $ "Test case " ++ show testNum ++ ":"
 
- case solve gameState of
-  Nothing -> putStrLn "no"
-  Just directions -> do
+ -- Race the solver against a 5-second timeout
+ result <- race (threadDelay (5 * 1000000)) (evaluate $ solve gameState)
+ case result of
+  Left _  -> putStrLn "timeout after 5 seconds"
+  Right Nothing -> putStrLn "no"
+  Right (Just directions) -> do
    putStrLn "yes"
    simulateSteps gameState directions
 
