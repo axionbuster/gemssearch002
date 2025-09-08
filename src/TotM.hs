@@ -3,7 +3,7 @@
 {- |
 Module      : TotM
 Description : Tomb of the Mask+ Gem Seeker minigame solver
-Copyright   : (c) 2025 axionbuster  
+Copyright   : (c) 2025 axionbuster
 License     : BSD-3-Clause
 Maintainer  : axionbuster
 
@@ -148,7 +148,7 @@ countGems game = do
  cells <- mapM (readArray game) coords
  pure $ length $ filter (== Gem) cells
 
-{- | 
+{- |
 Apply gravity in a direction to the entire game.
 
 Moves all movable objects (gems and bats) in the specified direction until
@@ -172,14 +172,27 @@ applyGravity dir target game = do
  finalGame <- unsafeFreeze mutableGame
  pure (mkTotM finalGame, outcome)
 
+{- | 
+Check the current game outcome.
+
+IMPORTANT INVARIANT: The target position should always contain Air in any valid 
+game state. No gem, bat, or obstacle should ever occupy the target position.
+This invariant is not enforced by this function but is a fundamental requirement
+of the game mechanics. Violations may lead to undefined behavior.
+
+Returns:
+- Won: when all gems have been collected (gemCount == 0)  
+- Lost: when a bat occupies the target position
+- Running: when the game is still in progress
+-}
 checkOutcome :: (Int, Int) -> TotS s -> ST s Outcome
 checkOutcome target game = do
  targetCell <- readArray game target
  gemCount <- countGems game
  pure $ case targetCell of
-  Bat -> Lost
+  Bat               -> Lost
   _ | gemCount == 0 -> Won    -- all gems collected wins!
-  _ -> Running
+  _                 -> Running
 
 -- | Game state for pathfinding
 data GameState = GameState
@@ -200,7 +213,7 @@ neighbors (GameState board target) action =
   when (outcome /= Lost) $
    void $ action (dir, GameState newBoard target)
 
-{- | 
+{- |
 Solve the gem seeker puzzle using uniform-cost search.
 
 Finds the optimal sequence of gravity changes to collect all gems and reach
@@ -223,14 +236,13 @@ solve startState =
  in
   case maybeWinState of
    Nothing -> Nothing  -- No winning state found
-   Just winState -> 
+   Just winState ->
     let (_, moveList, _) = recon dijkResult winState
     in if null moveList
        then Nothing
        else Just moveList
 
-
-{- | 
+{- |
 Create a game board from a 2D list of cells.
 
 Takes a list of rows (each row is a list of cells) and a target position,
@@ -252,9 +264,9 @@ createBoard cells target =
  in (mkTotM board, target)
 
 {- | 
-Pretty print a game board for debugging.
+Pretty print a game board using the same format as input.
 
-Displays the board with 'T' for target, 'G' for gems, 'B' for bats, 
+Displays the board with '*' for target, '@' for gems, '%' for bats, 
 '#' for obstacles, and '.' for air.
 -}
 showBoard :: TotM -> (Int, Int) -> String
@@ -263,9 +275,9 @@ showBoard board target = unlines $ map showRow [r1..r2]
   ((r1, c1), (r2, c2)) = totMBounds board
   showRow r = [showCell (r, c) | c <- [c1..c2]]
   showCell ij
-   | ij == target = 'T'
+   | ij == target = '*'
    | otherwise = case totMIndex board ij of
     Air -> '.'
-    Bat -> 'B'
-    Gem -> 'G'
+    Bat -> '%'
+    Gem -> '@'
     Obs -> '#'
