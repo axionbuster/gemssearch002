@@ -6,9 +6,9 @@ import Control.Monad.ST.Strict
 
 spec :: Spec
 spec = do
-  describe "Debug failing tests" $ do
-    it "should debug the obstacle stop test" $ do
-      -- Create a board with gem, empty space, then obstacle
+  describe "Debug gem collection mechanics" $ do
+    it "should collect gem when it slides into target" $ do
+      -- Create a board with gem sliding into target position
       let cells = [[Gem, Air, Obs]]
       let target = (0, 1)
       let (board, _) = createBoard cells target
@@ -25,16 +25,16 @@ spec = do
       let finalGemAt1 = totMIndex newBoard (0, 1) 
       let finalGemAt2 = totMIndex newBoard (0, 2)
       
-      -- Print debug info
-      finalGemAt0 `shouldBe` Air  -- gem should have moved
-      finalGemAt1 `shouldBe` Gem  -- gem should be at target
+      -- Gem should disappear when hitting target
+      finalGemAt0 `shouldBe` Air  -- gem moved from here
+      finalGemAt1 `shouldBe` Air  -- target remains Air (gem disappeared)
       finalGemAt2 `shouldBe` Obs  -- obstacle unchanged
       
-      -- Since there's only 1 gem and it's at the target, this should be Won
+      -- Since all gems are collected, game should be won
       outcome `shouldBe` Won
 
-    it "should debug the chain push test" $ do
-      -- Create a board with two gems in a row
+    it "should collect multiple gems in chain reaction" $ do
+      -- Create a board with two gems sliding into target
       let cells = [[Gem, Gem, Air]]
       let target = (0, 2)
       let (board, _) = createBoard cells target
@@ -46,14 +46,14 @@ spec = do
       let finalAt1 = totMIndex newBoard (0, 1)
       let finalAt2 = totMIndex newBoard (0, 2)
       
-      finalAt0 `shouldBe` Air   -- first position should be empty
-      finalAt1 `shouldBe` Gem   -- first gem moved here
-      finalAt2 `shouldBe` Gem   -- second gem at target
+      finalAt0 `shouldBe` Air   -- first gem moved from here
+      finalAt1 `shouldBe` Air   -- second gem moved from here  
+      finalAt2 `shouldBe` Air   -- target remains Air (both gems collected)
       
-      -- Since there are 2 gems total and 1 is at target, this should be Running
-      outcome `shouldBe` Running
+      -- Since all gems are collected, game should be won
+      outcome `shouldBe` Won
 
-    it "should debug a trivial solver case" $ do
+    it "should solve trivial single gem case" $ do
       -- Single gem that can slide right to target
       let cells = [[Gem, Air]]
       let target = (0, 1)
@@ -62,7 +62,7 @@ spec = do
       
       -- Check that manual physics works
       let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      totMIndex newBoard (0, 1) `shouldBe` Gem
+      totMIndex newBoard (0, 1) `shouldBe` Air  -- gem collected
       outcome `shouldBe` Won
       
       -- Now check solver

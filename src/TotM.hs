@@ -85,7 +85,8 @@ nextCoord dir (r, c) = let (dr, dc) = directionVector dir in (r + dr, c + dc)
 --  10 - gem - solid, movable
 --  11 - obs(tacle)/wall - solid
 -- Additionally, there is exactly one "target" cell, which is fixed
--- and must be an Air cell.
+-- and must ALWAYS be an Air cell. No gem, bat, or obstacle should ever
+-- occupy the target position in any valid game state.
 -- Physics (Basic):
 -- - Kind of like Mercury Meltdown Ultimate, but discrete and simpler.
 -- - Each move consists of changing the *gravity* to point in one of four
@@ -94,6 +95,7 @@ nextCoord dir (r, c) = let (dr, dc) = directionVector dir in (r + dr, c + dc)
 --   solid pieces cannot teleport on top of each other.
 -- Physics (Tricky):
 -- - When a gem slides into the "target," it disappears *immediately*.
+--   This means no gem should ever be found at the target position.
 -- - If a bat will hit the player right after the last gem hits the target cell
 --   all in the same move then this is still considered a win.
 -- - Sometimes the state does not change when gravity changes. That's OK if
@@ -123,7 +125,9 @@ chain nextCoordFn target ij0 game = go ij0 where
       Air -> do
        -- Move forward
        writeArray game ij Air
-       writeArray game ij' cell
+       if ij' == target && cell == Gem
+       then writeArray game ij' Air  -- gem disappears when hitting target
+       else writeArray game ij' cell
        go ij'
       Obs -> return () -- hit obstacle, stop
       _ -> do -- hit movable object
@@ -132,7 +136,9 @@ chain nextCoordFn target ij0 game = go ij0 where
        cell'' <- readArray game ij'
        when (cell'' == Air) $ do
         writeArray game ij Air
-        writeArray game ij' cell
+        if ij' == target && cell == Gem
+        then writeArray game ij' Air  -- gem disappears when hitting target
+        else writeArray game ij' cell
         go ij'
 
 countGems :: TotS s -> ST s Int
@@ -172,8 +178,7 @@ checkOutcome target game = do
  gemCount <- countGems game
  pure $ case targetCell of
   Bat -> Lost
-  Gem -> Won    -- any gem reaching target wins!
-  _ | gemCount == 0 -> Won    -- no gems left also wins
+  _ | gemCount == 0 -> Won    -- all gems collected wins!
   _ -> Running
 
 -- | Game state for pathfinding

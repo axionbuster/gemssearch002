@@ -35,14 +35,14 @@ spec = do
       let (newBoard2, outcome2) = runST $ applyGravity TotM.Right target newBoard1
       totMIndex newBoard2 (1, 0) `shouldBe` Air   -- first gem moved right
       totMIndex newBoard2 (1, 1) `shouldBe` Gem   -- first gem here
-      totMIndex newBoard2 (1, 2) `shouldBe` Gem   -- second gem reached target!
+      totMIndex newBoard2 (1, 2) `shouldBe` Air   -- second gem reached target and disappeared!
       
-      -- Check win condition manually
+      -- Check win condition manually - should be Running since one gem remains
       let finalOutcome = runST $ do
             mutableGame <- thaw (unTotM newBoard2)
             checkOutcome target mutableGame
-      finalOutcome `shouldBe` Won
-      outcome2 `shouldBe` Won
+      finalOutcome `shouldBe` Running  -- still one gem left
+      outcome2 `shouldBe` Running
       
       -- Now check if solver can find this
       let result = solve gameState

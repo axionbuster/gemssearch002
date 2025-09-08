@@ -31,17 +31,17 @@ spec = do
       totMIndex newBoard (0, 0) `shouldBe` Air
       outcome `shouldBe` Running
 
-    it "should stop gem at obstacle" $ do
-      -- Create a board with gem, empty space, then obstacle
+    it "should collect gem when it slides into target" $ do
+      -- Create a board with gem sliding into target position  
       let cells = [[Gem, Air, Obs]]
       let target = (0, 1)
       let (board, _) = createBoard cells target
       let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      -- Gem should stop before obstacle
-      totMIndex newBoard (0, 1) `shouldBe` Gem
-      totMIndex newBoard (0, 0) `shouldBe` Air
-      totMIndex newBoard (0, 2) `shouldBe` Obs
-      outcome `shouldBe` Running
+      -- Gem should disappear when it reaches target
+      totMIndex newBoard (0, 1) `shouldBe` Air  -- target remains Air
+      totMIndex newBoard (0, 0) `shouldBe` Air  -- gem moved from here
+      totMIndex newBoard (0, 2) `shouldBe` Obs  -- obstacle unchanged
+      outcome `shouldBe` Won  -- all gems collected
 
     it "should push gems in chain" $ do
       -- Create a board with two gems in a row
@@ -71,7 +71,8 @@ spec = do
       let target = (0, 1)
       let (board, _) = createBoard cells target
       let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      totMIndex newBoard (0, 1) `shouldBe` Gem
+      totMIndex newBoard (0, 1) `shouldBe` Air  -- gem disappears when hitting target
+      totMIndex newBoard (0, 0) `shouldBe` Air  -- gem moved from here
       outcome `shouldBe` Won
 
     it "should detect loss when bat reaches target" $ do

@@ -8,18 +8,8 @@ import Data.Array.ST
 spec :: Spec
 spec = do
   describe "Win condition logic" $ do
-    it "should win when player reaches target with last gem" $ do
-      -- Create a simple 2x2 board with one gem at target
-      let cells = [[Air, Air], [Air, Gem]]
-      let target = (1, 1)
-      let (board, _) = createBoard cells target
-      let outcome = runST $ do
-            mutableGame <- thaw (unTotM board)
-            checkOutcome target mutableGame
-      outcome `shouldBe` Won
-
     it "should win when no gems left" $ do
-      -- Create a simple 2x2 board with no gems
+      -- Create a simple 2x2 board with no gems (all collected)
       let cells = [[Air, Air], [Air, Air]]
       let target = (1, 1)
       let (board, _) = createBoard cells target
@@ -39,18 +29,8 @@ spec = do
       outcome `shouldBe` Lost
 
     it "should be running when gems remain and target is empty" $ do
-      -- Create a board with gems but empty target
+      -- Create a board with gems but target empty (as it should always be)
       let cells = [[Gem, Air], [Air, Air]]
-      let target = (1, 1)
-      let (board, _) = createBoard cells target
-      let outcome = runST $ do
-            mutableGame <- thaw (unTotM board)
-            checkOutcome target mutableGame
-      outcome `shouldBe` Running
-
-    it "should be running when multiple gems remain and one is at target" $ do
-      -- Create a board with multiple gems, one at target
-      let cells = [[Gem, Air], [Air, Gem]]
       let target = (1, 1)
       let (board, _) = createBoard cells target
       let outcome = runST $ do
