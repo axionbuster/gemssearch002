@@ -8,3 +8,11 @@ thumbs.db
 *.dump-*
 *~
 .claude/convo
+
+# Node.js / Web development
+node_modules/
+dist/
+*.log
+.npm
+.eslintcache
+.node_modules/

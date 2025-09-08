@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gem Seeker Web - Pairing Heap Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+        .demo-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .controls {
+            margin: 10px 0;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-right: 10px;
+        }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; cursor: not-allowed; }
+        input { padding: 6px; margin-right: 10px; border: 1px solid #ddd; border-radius: 4px; }
+        #output {
+            background: #f8f9fa;
+            border: 1px solid #e9ecef;
+            padding: 15px;
+            font-family: 'Monaco', 'Consolas', monospace;
+            font-size: 14px;
+            white-space: pre-wrap;
+            max-height: 400px;
+            overflow-y: auto;
+        }
+        .success { color: #28a745; }
+        .error { color: #dc3545; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎮 Gem Seeker Web - Pairing Heap Demo</h1>
+        
+        <div class="demo-section">
+            <h3>Interactive Priority Queue Demo</h3>
+            <div class="controls">
+                <input type="number" id="insertValue" placeholder="Enter number" />
+                <button onclick="insertValue()">Insert</button>
+                <button onclick="deleteMin()">Delete Min</button>
+                <button onclick="peek()">Peek</button>
+                <button onclick="clear()">Clear</button>
+            </div>
+            <div class="controls">
+                <button onclick="insertRandom()">Insert 10 Random</button>
+                <button onclick="runTests()">Run All Tests</button>
+            </div>
+            <p><strong>Current heap:</strong> <span id="heapState">Empty</span></p>
+        </div>
+
+        <div class="demo-section">
+            <h3>Output</h3>
+            <div id="output">Click "Run All Tests" to start, or try the interactive demo above!</div>
+        </div>
+    </div>
+
+    <!-- Load the bundled library -->
+    <script src="dist/index.js"></script>
+    <script src="dist/test.js"></script>
+    <script>
+        // Interactive demo using the bundled library
+        let heap = new GemSeekerWeb.PairingHeap();
+        
+        function updateDisplay() {
+            const state = heap.isEmpty() ? 'Empty' : `Min: ${heap.peek()}`;
+            document.getElementById('heapState').textContent = state;
+        }
+        
+        function log(message, type = 'info') {
+            const output = document.getElementById('output');
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'success' ? 'success' : type === 'error' ? 'error' : '';
+            output.innerHTML += `<span class="${className}">[${timestamp}] ${message}</span>\n`;
+            output.scrollTop = output.scrollHeight;
+        }
+        
+        function insertValue() {
+            const input = document.getElementById('insertValue');
+            const value = parseInt(input.value);
+            if (!isNaN(value)) {
+                heap.insert(value);
+                log(`Inserted: ${value}`, 'success');
+                input.value = '';
+                updateDisplay();
+            } else {
+                log('Please enter a valid number', 'error');
+            }
+        }
+        
+        function deleteMin() {
+            const min = heap.deleteMin();
+            if (min !== null) {
+                log(`Deleted min: ${min}`, 'success');
+            } else {
+                log('Heap is empty', 'error');
+            }
+            updateDisplay();
+        }
+        
+        function peek() {
+            const min = heap.peek();
+            if (min !== null) {
+                log(`Current min: ${min}`);
+            } else {
+                log('Heap is empty');
+            }
+        }
+        
+        function clear() {
+            heap = new GemSeekerWeb.PairingHeap();
+            log('Heap cleared', 'success');
+            updateDisplay();
+        }
+        
+        function insertRandom() {
+            for (let i = 0; i < 10; i++) {
+                const value = Math.floor(Math.random() * 100);
+                heap.insert(value);
+            }
+            log('Inserted 10 random values', 'success');
+            updateDisplay();
+        }
+        
+        function runTests() {
+            log('Starting test suite...');
+            const success = Tests.runTests();
+            if (success) {
+                log('All tests completed successfully! 🎉', 'success');
+            } else {
+                log('Some tests failed. Check console for details.', 'error');
+            }
+        }
+        
+        // Allow Enter key to insert values
+        document.getElementById('insertValue').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                insertValue();
+            }
+        });
+        
+        // Initialize display
+        updateDisplay();
+    </script>
+</body>
+</html>
