@@ -1,13 +1,16 @@
 {-# LANGUAGE PatternSynonyms #-}
 
-module TotM where
+module TotM
+ ( GameState, TotM, Direction (..), Cell
+ , solve, createBoard, showBoard
+ ) where
 
 import           Control.Monad
 import           Control.Monad.ST.Strict
 import           Data.Array.ST
 import           Data.Array.Unboxed
+import           Data.Array.Unsafe
 import           Data.Hashable
-import           Data.STRef.Strict
 import           Data.Word
 import           Dijk
 import           Prelude                 hiding (Left, Right)
@@ -28,9 +31,6 @@ pattern Obs = 0b11
 
 isAir :: Cell -> Bool
 isAir = (Air ==)
-
-isSolid :: Cell -> Bool
-isSolid = (Air /=)
 
 data Outcome = Running | Won | Lost deriving (Eq, Show)
 
@@ -64,10 +64,6 @@ directionVector Right = (0, 1)
 nextCoord :: Direction -> (Int, Int) -> (Int, Int)
 nextCoord dir (r, c) = let (dr, dc) = directionVector dir in (r + dr, c + dc)
 
-data ChainState s = ChainState
- (Int, Int)    -- ^ location
- (STRef s Int) -- ^ gem count
-
 -- | Move a piece forward.
 chain
  :: ((Int, Int) -> (Int, Int))
@@ -79,36 +75,30 @@ chain nextCoordFn target ij0 game = go ij0 where
  go ij = do
   gameBounds <- getBounds game
   let inBounds = inRange gameBounds
-
-  unless (inBounds ij) $ pure () -- out of bounds, stop
-
-  cell <- readArray game ij
-  when (isAir cell) $ pure () -- nothing to move
-
-  -- Check if we hit the target
-  when (ij == target) $ pure () -- collision handled elsewhere
-
-  let ij' = nextCoordFn ij
-
-  if not (inBounds ij')
-  then pure () -- hit boundary, stop
-  else do
-   cell' <- readArray game ij'
-   case cell' of
-    Air -> do
-     -- Move forward
-     writeArray game ij Air
-     writeArray game ij' cell
-     go ij'
-    Obs -> pure () -- hit obstacle, stop
-    _ -> do -- hit movable object
-     chain nextCoordFn target ij' game -- process the object we hit first
-     -- Try again - the space might be clear now
-     cell'' <- readArray game ij'
-     when (cell'' == Air) $ do
-      writeArray game ij Air
-      writeArray game ij' cell
-      go ij'
+  -- Only proceed if we're in bounds and have something to move
+  when (inBounds ij) $ do
+   cell <- readArray game ij
+   unless (isAir cell) $ do
+    let ij' = nextCoordFn ij
+    if not (inBounds ij')
+    then return () -- hit boundary, stop
+    else do
+     cell' <- readArray game ij'
+     case cell' of
+      Air -> do
+       -- Move forward
+       writeArray game ij Air
+       writeArray game ij' cell
+       go ij'
+      Obs -> return () -- hit obstacle, stop
+      _ -> do -- hit movable object
+       chain nextCoordFn target ij' game -- process the object we hit first
+       -- Try again - the space might be clear now
+       cell'' <- readArray game ij'
+       when (cell'' == Air) $ do
+        writeArray game ij Air
+        writeArray game ij' cell
+        go ij'
 
 countGems :: TotS s -> ST s Int
 countGems game = do
@@ -132,7 +122,7 @@ applyGravity dir target game = do
 
  -- Check outcome
  outcome <- checkOutcome target mutableGame
- finalGame <- freeze mutableGame
+ finalGame <- unsafeFreeze mutableGame
  pure (mkTotM finalGame, outcome)
 
 checkOutcome :: (Int, Int) -> TotS s -> ST s Outcome
