@@ -1,0 +1,129 @@
+Test case 1:
+yes
+Initial state:
+.#...
+.....
+%#*..
+%@#..
+@%.#.
+
+Step 1: Apply gravity Up
+%#...
+%....
+@#*..
+.@#..
+.%.#.
+
+Step 2: Apply gravity Right
+%#...
+....%
+@#*..
+.@#..
+..%#.
+
+Step 3: Apply gravity Up
+%#..%
+@....
+.#*..
+.@#..
+..%#.
+
+Step 4: Apply gravity Left
+%#%..
+@....
+.#*..
+@.#..
+%..#.
+
+Step 5: Apply gravity Up
+%#%..
+@....
+@#*..
+%.#..
+...#.
+
+Step 6: Apply gravity Right
+%#..%
+....@
+@#*..
+.%#..
+...#.
+
+Step 7: Apply gravity Up
+%#..%
+@...@
+.#*..
+.%#..
+...#.
+
+Step 8: Apply gravity Left
+%#%..
+@@...
+.#*..
+%.#..
+...#.
+
+Step 9: Apply gravity Up
+%#%..
+@@...
+%#*..
+..#..
+...#.
+
+Step 10: Apply gravity Right
+%#..%
+...@@
+%#*..
+..#..
+...#.
+
+Step 11: Apply gravity Up
+%#.@%
+%...@
+.#*..
+..#..
+...#.
+
+Step 12: Apply gravity Left
+%#@%.
+%@...
+.#*..
+..#..
+...#.
+
+Step 13: Apply gravity Down
+.#...
+.@...
+.#*..
+%.#%.
+%..#.
+
+Step 14: Apply gravity Right
+.#...
+....@
+.#*..
+.%#.%
+..%#.
+
+Step 15: Apply gravity Up
+.#..@
+....%
+.#*..
+.%#..
+..%#.
+
+Step 16: Apply gravity Left
+.#@..
+%....
+.#*..
+%.#..
+%..#.
+
+Step 17: Apply gravity Down
+.#...
+.....
+%#*..
+%.#..
+%..#.
+
+Won!
