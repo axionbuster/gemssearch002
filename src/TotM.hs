@@ -155,10 +155,10 @@ checkOutcome target game = do
  targetCell <- readArray game target
  gemCount <- countGems game
  pure $ case targetCell of
-  Bat                 -> Lost
-  Gem | gemCount == 1 -> Won  -- this is the last gem
-  _ | gemCount == 0   -> Won    -- no gems left
-  _                   -> Running
+  Bat -> Lost
+  Gem -> Won    -- any gem reaching target wins!
+  _ | gemCount == 0 -> Won    -- no gems left also wins
+  _ -> Running
 
 -- | Game state for pathfinding
 data GameState = GameState
@@ -171,13 +171,13 @@ instance Hashable GameState where
   s `hashWithSalt` board `hashWithSalt` target
 
 -- | Get all possible next states from current state
-neighbors :: GameState -> ForM_ (GameState, Direction)
+neighbors :: GameState -> ForM_ (Direction, GameState)
 neighbors (GameState board target) action =
  let directions = [Up, Down, Left, Right] in
  forM_ directions $ \dir -> do
   let (newBoard, outcome) = runST $ applyGravity dir target board
   when (outcome /= Lost) $
-   void $ action (GameState newBoard target, dir)
+   void $ action (dir, GameState newBoard target)
 
 -- | Solve the game using Dijkstra's algorithm
 solve :: GameState -> Maybe [Direction]
@@ -192,38 +192,17 @@ solve startState =
 
   weight _ _ = 1  -- each move costs 1
 
-  -- Extract just the states for dijkstra
-  stateNeighbors :: GameState -> ForM_ GameState
-  stateNeighbors gs action = neighbors gs (action . fst)
-
-  dijkResult = dijk weight stateNeighbors isWon startState
+  dijkResult = dijk weight neighbors isWon startState
   maybeWinState = _dijk'target dijkResult
  in
   case maybeWinState of
    Nothing -> Nothing  -- No winning state found
    Just winState -> 
-    let (statePath, _) = recon dijkResult winState
-    in if null statePath
+    let (_, moveList, _) = recon dijkResult winState
+    in if null moveList
        then Nothing
-       else Just $ reconstructDirections startState statePath
+       else Just moveList
 
--- | Reconstruct the directions from a path of states
-reconstructDirections :: GameState -> [GameState] -> [Direction]
-reconstructDirections _ [] = []
-reconstructDirections currentState (nextState:rest) =
- let direction = findDirection currentState nextState
-  in direction : reconstructDirections nextState rest
-
--- | Find the direction that leads from one state to another
-findDirection :: GameState -> GameState -> Direction
-findDirection (GameState board1 target) (GameState board2 _) =
- let
-  directions = [Up, Down, Left, Right]
-  results = [(dir, runST $ applyGravity dir target board1) | dir <- directions]
-  matchingDir = [dir | (dir, (newBoard, _)) <- results, newBoard == board2]
- in case matchingDir of
-  [dir] -> dir
-  _     -> Up -- fallback, shouldn't happen in valid paths
 
 -- | Create a game board from a list of lists
 createBoard :: [[Cell]] -> (Int, Int) -> (TotM, (Int, Int))

@@ -77,6 +77,7 @@ test-suite gemssearch002-test
   other-modules:
       DebugSpec
       IntegrationSpec
+      MultiGemDebugSpec
       OriginalSpec
       ParsingSpec
       PhysicsSpec

@@ -40,16 +40,18 @@ showArr arr = entry where
    go r c = show' (arr ! (r, c)) ++ go r (c + 1)
    in go 0 0
 
-dijkArr :: UArray (Int, Int) Int -> Int -> Int -> Dijk Int
+dijkArr :: UArray (Int, Int) Int -> Int -> Int -> Dijk Int ()
 dijkArr arr s t = entry where
  weights = curry (arr !)
  (_, (_, wm1)) = bounds arr
- neighbors :: Int -> ForM_ Int
- neighbors r = forM_ [c | c <- [0..wm1], arr ! (r, c) < maxBound]
+ neighbors :: Int -> ForM_ ((), Int)
+ neighbors r = forM_ [((), c) | c <- [0..wm1], arr ! (r, c) < maxBound]
  entry = dijk weights neighbors (== t) s
 
-showDijk :: Dijk Int -> Int -> String
-showDijk = (show .) . recon
+showDijk :: Dijk Int () -> Int -> String
+showDijk dijkResult target = 
+  let (statePath, _, cost) = recon dijkResult target
+  in show (statePath, cost)
 
 main :: IO ()
 main = do

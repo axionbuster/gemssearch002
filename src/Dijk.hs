@@ -7,9 +7,14 @@ import           Data.HashMap.Strict        (HashMap)
 import qualified Data.HashMap.Strict        as M
 import qualified Data.HashPSQ               as Q
 
--- | Strict pair for storing cost and predecessor
-data Pair a b = Pair a b
- deriving (Show, Eq)
+-- node information:
+--
+-- either start node (cost only) or step node (cost + predecessor + how)
+--
+-- ordering the more common (almost always `Step`) constructor first. known to
+-- improve performance across the board to order constructors by frequency.
+data Node k h = Step Int k h | Start Int
+ deriving (Show)
 
 -- | Partially applied 'forM_'. This is like using a list, but
 -- any representation is possible. It's also like using 'Foldable',
@@ -18,51 +23,54 @@ data Pair a b = Pair a b
 type ForM_ a = forall m b. (Monad m) => (a -> m b) -> m ()
 
 -- | Result of 'dijk'. Feed into 'recon' to reconstruct a path.
-data Dijk k = Dijk (HashMap k (Pair Int k)) (Maybe k)
+data Dijk k h = Dijk (HashMap k (Node k h)) (Maybe k)
  deriving
   ( Show -- ^ Debugging accommodation
   )
 
-_dijk'target :: Dijk k -> Maybe k
+-- | The target vertex detected (if any).
+_dijk'target :: Dijk k h -> Maybe k
 _dijk'target ~(Dijk _ t) = t
 
-lookupCost :: (Hashable k) => k -> HashMap k (Pair Int k) -> Int
+lookupCost :: (Hashable k) => k -> HashMap k (Node k h) -> Int
 lookupCost k m = case M.lookup k m of
- Just (Pair cost _) -> cost
- Nothing            -> maxBound
+ Just (Start cost)    -> cost
+ Just (Step cost _ _) -> cost
+ Nothing              -> maxBound
 {-# INLINE lookupCost #-}
 
 dijk
  :: (Hashable k, Ord k)
  => (k -> k -> Int) -- ^ weight (nonnegative)
- -> (k -> ForM_ k) -- ^ neighbors
+ -> (k -> ForM_ (h, k)) -- ^ neighbors: yields (how, nextState) pairs
  -> (k -> Bool) -- ^ stop? (target)
  -> k -- ^ start
- -> Dijk k -- ^ distance and predecessor arrays
+ -> Dijk k h -- ^ distance and predecessor arrays
 dijk weight neighbors stop start = entry where
- -- the starting vertex has a predecessor of self
- entry = evalState go (Q.singleton start 0 (), M.singleton start (Pair 0 start))
+ -- the starting vertex has no predecessor
+ entry = evalState go (Q.singleton start 0 (), M.singleton start (Start 0))
  go = do
   (bq0, costs) <- get
   case Q.minView bq0 of
    Just (ux, _, _, _) | stop ux -> Dijk <$> gets snd <*> pure (Just ux)
    Just (ux, ud, _, bq1) -> do
     put (bq1, costs)
-    neighbors ux $ \vx -> do
+    neighbors ux $ \(howToVx, vx) -> do
      (bq2, costs2) <- get
      let vd0 = lookupCost vx costs2
      let vd1 = ud + weight ux vx
      when (vd1 < vd0) $ do
       let newQueue = Q.insert vx vd1 () bq2
-      let newCosts = M.insert vx (Pair vd1 ux) costs2
+      let newCosts = M.insert vx (Step vd1 ux howToVx) costs2
       put (newQueue, newCosts)
     go
    Nothing -> Dijk <$> gets snd <*> pure Nothing
 {-# INLINE dijk #-}
 
-recon :: (Hashable k) => Dijk k -> k -> ([k], Int)
-recon (Dijk costs _) target = go [] target 0 where
- go l u c
-  | Just (Pair d v) <- M.lookup u costs, v /= u = go (v : l) v $! c + d
-  | otherwise = (l, c)
+recon :: (Hashable k) => Dijk k h -> k -> ([k], [h], Int)
+recon (Dijk costs _) target = go [] [] target 0 where
+ go stateList moveList u c
+  | Just (Step d v h) <- M.lookup u costs = go (v : stateList) (h : moveList) v $! c + d
+  | Just (Start d) <- M.lookup u costs = (stateList, moveList, c + d)
+  | otherwise = (stateList, moveList, c)
 {-# INLINE recon #-}
