@@ -79,7 +79,7 @@ Result: [., ., ., ., *, #]   (0 gems left = WIN in ONE move!)
 
 ### What to Do When Tests Are Incorrect:
 
-Sometimes, the tests reflect a misunderstanding about the game rules. In these cases, this document should take precedence. Consult with the user.
+Sometimes, the tests reflect a misunderstanding about the game rules. When that happens, this document should take precedence. Consult with the user.
 
 ## 💻 Coding Style (follow src/Dijk.hs)
 
@@ -174,7 +174,7 @@ ls **/*.hs | each { |file| stylish-haskell -i $file.name }
 - Follow existing code style in src/Dijk.hs
 - Consistent indentation (spaces, not tabs)
 - Align similar constructs vertically
-- Keep line length reasonable (~80-100 chars)
+- Keep line length reasonable (80 chars in Haskell files)
 
 ## 🧪 Testing Strategy
 
