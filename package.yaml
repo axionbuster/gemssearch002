@@ -89,3 +89,5 @@ tests:
     - -with-rtsopts=-N
     dependencies:
     - gemssearch002
+    - hspec
+    - hspec-discover

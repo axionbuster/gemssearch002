@@ -1,4 +1,4 @@
-module Dijk (ForM_, Dijk, dijk, recon) where
+module Dijk (ForM_, Dijk, _dijk'target, dijk, recon) where
 
 import           Control.Monad
 import           Control.Monad.State.Strict
@@ -18,10 +18,13 @@ data Pair a b = Pair a b
 type ForM_ a = forall m b. (Monad m) => (a -> m b) -> m ()
 
 -- | Result of 'dijk'. Feed into 'recon' to reconstruct a path.
-newtype Dijk k = Dijk (HashMap k (Pair Int k))
+data Dijk k = Dijk (HashMap k (Pair Int k)) (Maybe k)
  deriving
   ( Show -- ^ Debugging accommodation
   )
+
+_dijk'target :: Dijk k -> Maybe k
+_dijk'target ~(Dijk _ t) = t
 
 lookupCost :: (Hashable k) => k -> HashMap k (Pair Int k) -> Int
 lookupCost k m = case M.lookup k m of
@@ -42,7 +45,7 @@ dijk weight neighbors stop start = entry where
  go = do
   (bq0, costs) <- get
   case Q.minView bq0 of
-   Just (ux, _, _, _) | stop ux -> Dijk <$> gets snd
+   Just (ux, _, _, _) | stop ux -> Dijk <$> gets snd <*> pure (Just ux)
    Just (ux, ud, _, bq1) -> do
     put (bq1, costs)
     neighbors ux $ \vx -> do
@@ -54,11 +57,11 @@ dijk weight neighbors stop start = entry where
       let newCosts = M.insert vx (Pair vd1 ux) costs2
       put (newQueue, newCosts)
     go
-   Nothing -> Dijk <$> gets snd
+   Nothing -> Dijk <$> gets snd <*> pure Nothing
 {-# INLINE dijk #-}
 
 recon :: (Hashable k) => Dijk k -> k -> ([k], Int)
-recon (Dijk costs) target = go [] target 0 where
+recon (Dijk costs _) target = go [] target 0 where
  go l u c
   | Just (Pair d v) <- M.lookup u costs, v /= u = go (v : l) v $! c + d
   | otherwise = (l, c)

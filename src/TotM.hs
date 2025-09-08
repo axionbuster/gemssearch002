@@ -4,6 +4,7 @@ module TotM
  ( GameState (..), TotM, Direction (..), Cell, Outcome (..)
  , pattern Air, pattern Bat, pattern Gem, pattern Obs
  , solve, createBoard, showBoard, applyGravity
+ , unTotM, totMBounds, totMIndex, checkOutcome
  ) where
 
 import           Control.Monad
@@ -196,11 +197,15 @@ solve startState =
   stateNeighbors gs action = neighbors gs (action . fst)
 
   dijkResult = dijk weight stateNeighbors isWon startState
-  (statePath, _) = recon dijkResult startState
+  maybeWinState = _dijk'target dijkResult
  in
-  if null statePath
-  then Nothing
-  else Just $ reconstructDirections startState statePath
+  case maybeWinState of
+   Nothing -> Nothing  -- No winning state found
+   Just winState -> 
+    let (statePath, _) = recon dijkResult winState
+    in if null statePath
+       then Nothing
+       else Just $ reconstructDirections startState statePath
 
 -- | Reconstruct the directions from a path of states
 reconstructDirections :: GameState -> [GameState] -> [Direction]

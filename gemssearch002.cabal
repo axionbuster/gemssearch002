@@ -75,6 +75,12 @@ test-suite gemssearch002-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
   other-modules:
+      DebugSpec
+      IntegrationSpec
+      OriginalSpec
+      ParsingSpec
+      PhysicsSpec
+      WinConditionSpec
       Paths_gemssearch002
   autogen-modules:
       Paths_gemssearch002
@@ -89,6 +95,8 @@ test-suite gemssearch002-test
     , containers
     , gemssearch002
     , hashable
+    , hspec
+    , hspec-discover
     , mtl
     , psqueues
     , transformers
