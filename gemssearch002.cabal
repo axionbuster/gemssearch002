@@ -26,7 +26,6 @@ source-repository head
 library
   exposed-modules:
       Dijk
-      Lib
       TotM
   other-modules:
       Paths_gemssearch002
@@ -59,30 +58,6 @@ executable gemssearch002-exe
   default-extensions:
       Strict
   ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N
-  build-depends:
-      array
-    , base >=4.7 && <5
-    , containers
-    , gemssearch002
-    , hashable
-    , mtl
-    , psqueues
-    , transformers
-    , unliftio
-    , unordered-containers
-  default-language: GHC2024
-
-executable gemssearch002-exe-prof
-  main-is: Main.hs
-  other-modules:
-      Paths_gemssearch002
-  autogen-modules:
-      Paths_gemssearch002
-  hs-source-dirs:
-      app
-  default-extensions:
-      Strict
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N -prof -fprof-auto -fprof-cafs
   build-depends:
       array
     , base >=4.7 && <5
