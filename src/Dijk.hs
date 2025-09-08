@@ -8,7 +8,7 @@ import qualified Data.HashMap.Strict        as M
 import qualified Data.HashPSQ               as Q
 
 -- | Strict pair for storing cost and predecessor
-data Pair a b = Pair !a !b
+data Pair a b = Pair a b
  deriving (Show, Eq)
 
 -- | Partially applied 'forM_'. This is like using a list, but
