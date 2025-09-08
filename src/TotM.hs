@@ -65,6 +65,29 @@ directionVector Right = (0, 1)
 nextCoord :: Direction -> (Int, Int) -> (Int, Int)
 nextCoord dir (r, c) = let (dr, dc) = directionVector dir in (r + dr, c + dc)
 
+-- The Gem Seeker game
+--
+-- Purpose: collect all "gems" without hitting a bat.
+-- Setup: a grid of blocks, four kinds of which exist:
+--  00 - air
+--  01 - bat - solid, movable
+--  10 - gem - solid, movable
+--  11 - obs(tacle)/wall - solid
+-- Additionally, there is exactly one "target" cell, which is fixed
+-- and must be an Air cell.
+-- Physics (Basic):
+-- - Kind of like Mercury Meltdown Ultimate, but discrete and simpler.
+-- - Each move consists of changing the *gravity* to point in one of four
+--   directions.
+-- - Then all movable pieces move toward the direction of the gravity, but
+--   solid pieces cannot teleport on top of each other.
+-- Physics (Tricky):
+-- - When a gem slides into the "target," it disappears *immediately*.
+-- - If a bat will hit the player right after the last gem hits the target cell
+--   all in the same move then this is still considered a win.
+-- - Sometimes the state does not change when gravity changes. That's OK if
+ --  physically necessitated.
+
 -- | Move a piece forward.
 chain
  :: ((Int, Int) -> (Int, Int))
@@ -152,7 +175,7 @@ neighbors (GameState board target) action =
  let directions = [Up, Down, Left, Right] in
  forM_ directions $ \dir -> do
   let (newBoard, outcome) = runST $ applyGravity dir target board
-  when (outcome == Running) $
+  when (outcome /= Lost) $
    void $ action (GameState newBoard target, dir)
 
 -- | Solve the game using Dijkstra's algorithm
