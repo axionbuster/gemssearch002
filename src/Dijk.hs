@@ -1,3 +1,64 @@
+{- |
+Module      : Dijk
+Description : Efficient Dijkstra's shortest path algorithm with move tracking
+Copyright   : (c) 2025 axionbuster
+License     : BSD-3-Clause
+Maintainer  : axionbuster
+
+This module provides a highly efficient implementation of Dijkstra's shortest
+path algorithm, specifically designed for uniform-cost search problems where
+the target state is unknown but satisfies a predicate.
+
+Key features:
+
+* __Uniform-Cost Search__: Explores states in order of increasing cost until
+  finding any state that satisfies a goal predicate
+* __Move Tracking__: Stores transition information alongside states, enabling
+  direct reconstruction of the move sequence without error-prone reverse
+  engineering
+* __Flexible State Representation__: Works with any hashable, orderable state
+  type
+* __Memory Efficient__: Uses priority queues and hashmaps for optimal
+  performance
+
+== Example Usage
+
+@
+import Dijk
+
+-- Define your state type (must be 'Hashable' and 'Ord')
+data GameState = ...
+instance Hashable GameState where ...
+instance Ord GameState where ...
+
+-- Define your move type
+data Move = Up | Down | Left | Right
+
+-- Define neighbor function that yields (move, nextState) pairs
+neighbors :: GameState -> 'ForM_' (Move, GameState)
+neighbors state action = do
+  'forM_' [Up, Down, Left, Right] $ \\move -> do
+    case applyMove move state of
+      Just nextState -> action (move, nextState)
+      Nothing -> return ()
+
+-- Define weight function (cost of transition)
+weight :: GameState -> GameState -> Int
+weight _ _ = 1  -- uniform cost
+
+-- Define goal predicate
+isWon :: GameState -> Bool
+isWon state = ...
+
+-- Run the search
+let result = 'dijk' weight neighbors isWon startState
+case '_dijk'target' result of
+  Nothing -> putStrLn "No solution found"
+  Just winState -> do
+    let (statePath, moveSequence, totalCost) = 'recon' result winState
+    putStrLn $ "Solution: " ++ show moveSequence
+@
+-}
 module Dijk (ForM_, Dijk, _dijk'target, dijk, recon) where
 
 import           Control.Monad
@@ -16,19 +77,77 @@ import qualified Data.HashPSQ               as Q
 data Node k h = Step Int k h | Start Int
  deriving (Show)
 
--- | Partially applied 'forM_'. This is like using a list, but
--- any representation is possible. It's also like using 'Foldable',
--- but the container can be monomorphic. It can also be an entirely abstract
--- process. Must be finite, but can be empty.
+{- |
+A polymorphic container type for neighbor enumeration.
+
+This type represents a computation that applies an action to each element
+in some container-like structure. It's more flexible than lists because:
+
+* The container can be monomorphic (e.g., specialized data structures)
+* The container can be abstract (e.g., generated on-demand)
+* The container can be infinite (though search assumes it's finite)
+* The container can be empty
+
+== Usage
+
+@
+-- From a list
+neighbors :: [a] -> ForM_ a
+neighbors xs action = forM_ xs action
+
+-- From a specialized container
+neighbors :: MyContainer a -> ForM_ a
+neighbors container action =
+  forEachInContainer container action
+
+-- Generated on-demand
+neighbors :: State -> ForM_ (Move, State)
+neighbors state action =
+  forM_ allMoves $ \\move ->
+    case applyMove move state of
+      Just nextState -> action (move, nextState)
+      Nothing -> return ()
+@
+-}
 type ForM_ a = forall m b. (Monad m) => (a -> m b) -> m ()
 
--- | Result of 'dijk'. Feed into 'recon' to reconstruct a path.
+{- |
+The result of running Dijkstra's algorithm.
+
+This opaque type contains the search results including the cost table and
+the target state (if found). Use '_dijk'target' to check if a target was
+found, and 'recon' to reconstruct the path and move sequence.
+
+Type parameters:
+
+* @k@: State type (must be 'Hashable' and 'Ord')
+* @h@: Move/transition type (can be any type, including '()')
+
+The internal structure is optimized for efficient lookups and path
+reconstruction, but should not be accessed directly.
+-}
 data Dijk k h = Dijk (HashMap k (Node k h)) (Maybe k)
  deriving
   ( Show -- ^ Debugging accommodation
   )
 
--- | The target vertex detected (if any).
+{- |
+Extract the target state found by the search, if any.
+
+Returns 'Just' the first state that satisfied the goal predicate (in order
+of increasing cost), or 'Nothing' if no such state exists or is reachable.
+
+== Example
+
+@
+let result = 'dijk' weight neighbors isGoal startState
+case '_dijk'target' result of
+  Nothing -> putStrLn "No solution exists"
+  Just targetState -> do
+    let (path, moves, cost) = 'recon' result targetState
+    putStrLn $ "Found solution with cost " ++ show cost
+@
+-}
 _dijk'target :: Dijk k h -> Maybe k
 _dijk'target ~(Dijk _ t) = t
 
@@ -39,13 +158,75 @@ lookupCost k m = case M.lookup k m of
  Nothing              -> maxBound
 {-# INLINE lookupCost #-}
 
+{- |
+Run Dijkstra's shortest path algorithm to find the cheapest path to any
+state satisfying a goal predicate.
+
+This is a /uniform-cost search/ that explores states in order of increasing
+path cost until finding the first state that satisfies the goal predicate.
+The algorithm is __optimal__: the first solution found is guaranteed to have
+minimum cost.
+
+== Parameters
+
+* @weight@: Cost function for transitions. Must be non-negative.
+  @weight from to@ returns the cost of moving from state @from@ to state @to@.
+
+* @neighbors@: Function that enumerates all possible transitions from a
+  state. Should call the action with @(move, nextState)@ pairs for each
+  valid transition. The @move@ value is stored and can be retrieved later.
+
+* @stop@: Goal predicate. @stop state@ returns 'True' if @state@ satisfies
+  the goal condition.
+
+* @start@: Initial state to begin the search from.
+
+== Returns
+
+A 'Dijk' result containing the search tree. Use '_dijk'target' to check if
+a solution exists and 'recon' to reconstruct the optimal path.
+
+== Complexity
+
+* Time: /O((V + E) log V)/ where /V/ is the number of reachable states and
+  /E/ is the number of transitions
+* Space: /O(V)/ to store the search tree
+
+== Example
+
+@
+-- Simple grid pathfinding
+weight :: (Int,Int) -> (Int,Int) -> Int
+weight _ _ = 1  -- all moves cost 1
+
+neighbors :: (Int,Int) -> 'ForM_' (Direction, (Int,Int))
+neighbors (x,y) action = do
+  let moves = [(Up, (x,y-1)), (Down, (x,y+1)),
+               (Left, (x-1,y)), (Right, (x+1,y))]
+  forM_ moves $ \\(dir, pos) ->
+    when (inBounds pos && not (isWall pos)) $
+      action (dir, pos)
+
+isGoal :: (Int,Int) -> Bool
+isGoal pos = pos == targetPosition
+
+let result = 'dijk' weight neighbors isGoal startPosition
+@
+
+== Notes
+
+* The algorithm stops immediately when the first goal state is found
+* States are explored in order of increasing path cost (uniform-cost search)
+* The @weight@ function must return non-negative values for correctness
+* Cycles and revisits are handled efficiently via the priority queue
+-}
 dijk
  :: (Hashable k, Ord k)
- => (k -> k -> Int) -- ^ weight (nonnegative)
- -> (k -> ForM_ (h, k)) -- ^ neighbors: yields (how, nextState) pairs
- -> (k -> Bool) -- ^ stop? (target)
- -> k -- ^ start
- -> Dijk k h -- ^ distance and predecessor arrays
+ => (k -> k -> Int) -- ^ Cost function (non-negative)
+ -> (k -> ForM_ (h, k)) -- ^ Neighbor enumeration with move labels
+ -> (k -> Bool) -- ^ Goal predicate
+ -> k -- ^ Start state
+ -> Dijk k h -- ^ Search result
 dijk weight neighbors stop start = entry where
  -- the starting vertex has no predecessor
  entry = evalState go (Q.singleton start 0 (), M.singleton start (Start 0))
@@ -67,10 +248,61 @@ dijk weight neighbors stop start = entry where
    Nothing -> Dijk <$> gets snd <*> pure Nothing
 {-# INLINE dijk #-}
 
+{- |
+Reconstruct the optimal path from start to a target state.
+
+Given a 'Dijk' search result and a target state, reconstructs the shortest
+path from the original start state to the target. Returns the sequence of
+intermediate states, the sequence of moves, and the total path cost.
+
+== Parameters
+
+* @dijkResult@: The result from running 'dijk'
+* @target@: The target state to reconstruct a path to. This should be a state
+  that was actually reached during the search (typically obtained from
+  '_dijk'target'). (But see __Notes__ for how fallback works.)
+
+== Returns
+
+A tuple @(statePath, moveSequence, totalCost)@ where:
+
+* @statePath@: List of intermediate states from start to target (excluding
+  the start state, including the target state)
+* @moveSequence@: List of moves that transform the start state into the
+  target state via the intermediate states
+* @totalCost@: Total cost of the path
+
+== Example
+
+@
+let result = 'dijk' weight neighbors isGoal startState
+case '_dijk'target' result of
+  Just target -> do
+    let (path, moves, cost) = 'recon' result target
+    putStrLn $ "Path: " ++ show (startState : path)
+    putStrLn $ "Moves: " ++ show moves
+    putStrLn $ "Cost: " ++ show cost
+  Nothing -> putStrLn "No path found"
+@
+
+== Complexity
+
+* Time: /O(L)/ where /L/ is the length of the path
+* Space: /O(L)/ for the returned lists
+
+== Notes
+
+* If the target state was not reached during the search, returns empty
+  lists and cost 0
+* The move sequence can be applied in order to transform the start state
+  into the target state
+* The state path excludes the start state but includes the target state
+-}
 recon :: (Hashable k) => Dijk k h -> k -> ([k], [h], Int)
 recon (Dijk costs _) target = go [] [] target 0 where
  go stateList moveList u c
-  | Just (Step d v h) <- M.lookup u costs = go (v : stateList) (h : moveList) v $! c + d
+  | Just (Step d v h) <- M.lookup u costs =
+   go (v : stateList) (h : moveList) v $! c + d
   | Just (Start d) <- M.lookup u costs = (stateList, moveList, c + d)
   | otherwise = (stateList, moveList, c)
 {-# INLINE recon #-}

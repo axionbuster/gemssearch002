@@ -1,5 +1,15 @@
 {-# LANGUAGE PatternSynonyms #-}
 
+{- |
+Module      : TotM
+Description : Tomb of the Mask+ Gem Seeker minigame solver
+Copyright   : (c) 2025 axionbuster  
+License     : BSD-3-Clause
+Maintainer  : axionbuster
+
+Solves the Gem Seeker minigame from Tomb of the Mask+ using efficient
+pathfinding algorithms.
+-}
 module TotM
  ( GameState (..), TotM, Direction (..), Cell, Outcome (..)
  , pattern Air, pattern Bat, pattern Gem, pattern Obs
@@ -132,7 +142,13 @@ countGems game = do
  cells <- mapM (readArray game) coords
  pure $ length $ filter (== Gem) cells
 
--- | Apply gravity in a direction to the entire game
+{- | 
+Apply gravity in a direction to the entire game.
+
+Moves all movable objects (gems and bats) in the specified direction until
+they hit obstacles, boundaries, or other objects. Returns the new board
+state and the game outcome.
+-}
 applyGravity :: Direction -> (Int, Int) -> TotM -> ST s (TotM, Outcome)
 applyGravity dir target game = do
  mutableGame <- thaw (unTotM game)
@@ -179,7 +195,12 @@ neighbors (GameState board target) action =
   when (outcome /= Lost) $
    void $ action (dir, GameState newBoard target)
 
--- | Solve the game using Dijkstra's algorithm
+{- | 
+Solve the gem seeker puzzle using uniform-cost search.
+
+Finds the optimal sequence of gravity changes to collect all gems and reach
+the target, or returns Nothing if no solution exists.
+-}
 solve :: GameState -> Maybe [Direction]
 solve startState =
  let
@@ -204,7 +225,12 @@ solve startState =
        else Just moveList
 
 
--- | Create a game board from a list of lists
+{- | 
+Create a game board from a 2D list of cells.
+
+Takes a list of rows (each row is a list of cells) and a target position,
+returns the game board and target position.
+-}
 createBoard :: [[Cell]] -> (Int, Int) -> (TotM, (Int, Int))
 createBoard cells target =
  let
@@ -220,7 +246,12 @@ createBoard cells target =
   board = array gameBounds gameAssocs
  in (mkTotM board, target)
 
--- | Pretty print a game board
+{- | 
+Pretty print a game board for debugging.
+
+Displays the board with 'T' for target, 'G' for gems, 'B' for bats, 
+'#' for obstacles, and '.' for air.
+-}
 showBoard :: TotM -> (Int, Int) -> String
 showBoard board target = unlines $ map showRow [r1..r2]
  where
