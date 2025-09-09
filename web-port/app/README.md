@@ -35,13 +35,15 @@ src/
 ### Input Files (`caseN.txt`)
 ```
 1               # Number of test cases
-6 8             # Grid dimensions (rows cols)
+6 8             # Grid dimensions (cols rows)
 @...#@          # Grid data with symbols:
-.#....          #   @ = gems
-......          #   # = walls  
-...#..          #   * = target
-#..@.#          #   % = special gems
-......          #   . = empty space
+.#....          #   . = Air (empty space)
+......          #   @ = Gem (movable, must be collected)  
+...#..          #   % = Bat (movable, dangerous)
+#..@.#          #   # = Obstacle/Wall (immovable)
+......          #   * = Target (collection point, always appears as air)
+#*....
+..#...
 ```
 
 ### Solution Files (`caseN_outM.txt`)
@@ -112,6 +114,81 @@ This project is currently in active development. The codebase is designed to be:
 - Type-safe with TypeScript
 - Accessible and responsive
 - Easily extensible for new features
+
+## Code Architecture & Integration Guide
+
+### Grid Rendering Components
+
+When adding parsing logic, these are the key components responsible for grid visualization:
+
+#### 1. **Grid Rendering Pipeline**
+```
+Data Flow: Raw Text → Parser → TypeScript Types → React Components → Visual Grid
+```
+
+#### 2. **Core Rendering Components**
+
+**`src/components/puzzle/PuzzleCell.tsx`**
+- **Purpose**: Renders individual puzzle cells with emoji symbols
+- **Key Function**: `getCellContent(symbol: string)` - Maps puzzle symbols to emojis
+- **Symbol Mapping**:
+  - `.` (Air) → `🟦` (blue square)
+  - `@` (Gem) → `💎` (diamond)
+  - `#` (Wall) → `🧱` (brick)
+  - `*` (Target) → `🎯` (target)
+  - `%` (Bat) → `🦇` (bat)
+- **Integration Point**: Modify `getCellContent()` to handle new symbols or visual styles
+
+**`src/components/puzzle/PuzzleGridComponent.tsx`**
+- **Purpose**: Renders the complete 8×6 puzzle grid using CSS Grid
+- **Key Features**: Responsive sizing, proper grid layout
+- **Integration Point**: Update grid dimensions or styling here
+
+**`src/components/puzzle/SolutionSlideShow.tsx`**
+- **Purpose**: Main interactive component managing solution steps
+- **Integration Point**: Add new puzzle case loading or solution control logic
+
+#### 3. **Data Parsing & Management**
+
+**`src/lib/puzzle-parser.ts`**
+- **Purpose**: Parses Haskell solver output and manages puzzle data
+- **Key Functions**:
+  - `parsePuzzleInput(input: string)` - Parses puzzle definition from text
+  - `loadPuzzleCase(caseId: number)` - Loads specific puzzle cases
+- **Current State**: Contains mock data; replace with actual file reading
+- **Integration Point**: **PRIMARY LOCATION** for adding real parsing logic
+
+**`src/types/puzzle.ts`**
+- **Purpose**: TypeScript type definitions for puzzle data structures
+- **Key Types**: `PuzzleCell`, `PuzzleGrid`, `PuzzleState`, `SolutionStep`
+- **Integration Point**: Update types when adding new data fields
+
+### Adding Real Data Parsing
+
+To replace mock data with actual Haskell solver output:
+
+1. **Update Parser Logic** (`src/lib/puzzle-parser.ts`):
+   ```typescript
+   // Replace loadPuzzleCase() implementation
+   // Add file reading logic for caseN.txt and caseN_outM.txt
+   ```
+
+2. **Grid Rendering** (Already Complete):
+   - `PuzzleCell.tsx` handles symbol visualization
+   - `PuzzleGridComponent.tsx` handles layout
+   - No changes needed unless adding new symbols
+
+3. **Data Types** (`src/types/puzzle.ts`):
+   - Update if adding new puzzle properties
+   - Current types support standard gem seeker format
+
+### Integration Checklist
+
+- [ ] Replace mock data in `puzzle-parser.ts`
+- [ ] Add file reading functionality
+- [ ] Test with actual case files
+- [ ] Update symbol mapping if needed
+- [ ] Add error handling for malformed files
 
 ## Data Integration
 

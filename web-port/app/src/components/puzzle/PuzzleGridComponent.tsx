@@ -19,10 +19,12 @@ export function PuzzleGridComponent({
   return (
     <div className={cn('puzzle-grid', className)}>
       <div 
-        className="grid gap-1 inline-block border-2 border-gray-300 rounded-lg p-2 bg-white shadow-sm"
+        className="border-2 border-gray-300 rounded-lg p-2 bg-white shadow-sm"
         style={{
+          display: 'grid',
           gridTemplateColumns: `repeat(${grid.cols}, 1fr)`,
-          gridTemplateRows: `repeat(${grid.rows}, 1fr)`
+          gridTemplateRows: `repeat(${grid.rows}, 1fr)`,
+          gap: '0.25rem'
         }}
       >
         {grid.cells.map((row, rowIndex) =>
@@ -40,7 +42,9 @@ export function PuzzleGridComponent({
       {/* Grid info for development */}
       {process.env.NODE_ENV === 'development' && (
         <div className="text-xs text-gray-500 mt-2">
-          {grid.rows} × {grid.cols} grid
+          {grid.rows} × {grid.cols} grid ({grid.cells.reduce((total, row) => total + row.length, 0)} cells)
+          <br />
+          Expected: {grid.rows * grid.cols} cells
         </div>
       )}
     </div>

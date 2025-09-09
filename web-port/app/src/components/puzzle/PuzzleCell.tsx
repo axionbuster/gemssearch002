@@ -13,11 +13,11 @@ const getCellContent = (cellType: CellType): { emoji: string; bgColor: string; t
     case '@':
       return { emoji: '💎', bgColor: 'bg-blue-100', textColor: 'text-blue-600' };
     case '#':
-      return { emoji: '🧱', bgColor: 'bg-gray-600', textColor: 'text-gray-100' };
+      return { emoji: '🧱', bgColor: 'bg-stone-700', textColor: 'text-stone-100' };
     case '*':
-      return { emoji: '⭐', bgColor: 'bg-yellow-100', textColor: 'text-yellow-600' };
+      return { emoji: '🎯', bgColor: 'bg-red-100', textColor: 'text-red-600' };
     case '%':
-      return { emoji: '🔮', bgColor: 'bg-purple-100', textColor: 'text-purple-600' };
+      return { emoji: '🦇', bgColor: 'bg-purple-200', textColor: 'text-purple-700' };
     case '.':
     default:
       return { emoji: '', bgColor: 'bg-gray-50', textColor: 'text-gray-400' };
