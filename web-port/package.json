@@ -38,5 +38,8 @@
     "typescript"
   ],
   "author": "axionbuster",
-  "license": "BSD-3-Clause"
+  "license": "BSD-3-Clause",
+  "dependencies": {
+    "radix-ui": "^1.4.3"
+  }
 }
