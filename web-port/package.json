@@ -11,14 +11,20 @@
     "dev": "rollup -c -w",
     "serve": "npm run build && npx serve dist",
     "serve:dev": "npm run dev & npx serve dist",
-    "test": "node dist/test.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:old": "node dist/test.js",
     "clean": "rm -rf dist"
   },
   "devDependencies": {
     "@rollup/plugin-node-resolve": "^15.2.3",
     "@rollup/plugin-typescript": "^11.1.6",
+    "@types/jest": "^30.0.0",
+    "jest": "^30.1.3",
     "rollup": "^4.18.0",
     "rollup-plugin-copy": "^3.5.0",
+    "ts-jest": "^29.4.1",
     "tslib": "^2.6.3",
     "typescript": "^5.4.5"
   },

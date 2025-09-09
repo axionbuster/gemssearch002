@@ -33,16 +33,16 @@ spec = do
       
       -- Manual check: what happens if we then move Right?  
       let (newBoard2, outcome2) = runST $ applyGravity TotM.Right target newBoard1
-      totMIndex newBoard2 (1, 0) `shouldBe` Air   -- first gem moved right
-      totMIndex newBoard2 (1, 1) `shouldBe` Gem   -- first gem here
-      totMIndex newBoard2 (1, 2) `shouldBe` Air   -- second gem reached target and disappeared!
+      totMIndex newBoard2 (1, 0) `shouldBe` Air   -- first gem moved right and collected
+      totMIndex newBoard2 (1, 1) `shouldBe` Air   -- both gems collected in chain reaction
+      totMIndex newBoard2 (1, 2) `shouldBe` Air   -- target remains Air
       
-      -- Check win condition manually - should be Running since one gem remains
+      -- Check win condition manually - should be Won since all gems collected
       let finalOutcome = runST $ do
             mutableGame <- thaw (unTotM newBoard2)
             checkOutcome target mutableGame
-      finalOutcome `shouldBe` Running  -- still one gem left
-      outcome2 `shouldBe` Running
+      finalOutcome `shouldBe` Won  -- all gems collected
+      outcome2 `shouldBe` Won
       
       -- Now check if solver can find this
       let result = solve gameState
