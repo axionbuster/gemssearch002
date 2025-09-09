@@ -28,8 +28,7 @@ export default [
       }),
       copy({
         targets: [
-          { src: 'index.html', dest: 'dist' },
-          { src: 'README.md', dest: 'dist' } // Optional: also copy README
+          { src: 'README.md', dest: 'dist' }
         ]
       })
     ]
@@ -42,6 +41,23 @@ export default [
       file: 'dist/test.js',
       format: 'iife',
       name: 'Tests',
+      sourcemap: true
+    },
+    plugins: [
+      nodeResolve(),
+      typescript({
+        tsconfig: './tsconfig.json'
+      })
+    ]
+  },
+  
+  // TotM optimization test bundle
+  {
+    input: 'src/totm-test.ts',
+    output: {
+      file: 'dist/totm-test.js',
+      format: 'iife',
+      name: 'TotMTest',
       sourcemap: true
     },
     plugins: [
