@@ -27,6 +27,7 @@ library
   exposed-modules:
       Dijk
       TotM
+      TotM2
   other-modules:
       Paths_gemssearch002
   autogen-modules:

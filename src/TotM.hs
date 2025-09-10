@@ -192,9 +192,9 @@ mkGameState = GameState
 -- Returns either a game-ending result (Left) or new state (Right)
 stepGame :: Direction -> GameState -> Either GameException GameState
 stepGame dir (GameState board target) =
-  case runST (stepGameST dir target board) of
-    Left exc       -> Left exc
-    Right newBoard -> Right (GameState newBoard target)
+ case runST (stepGameST dir target board) of
+  Left exc       -> Left exc
+  Right newBoard -> Right (GameState newBoard target)
 
 -- | Show a game state in human-readable format
 showGameState :: GameState -> String
@@ -214,13 +214,13 @@ getCell = totMIndex
 stepGameST :: Direction -> (Int, Int) -> TotM
            -> ST s (Either GameException TotM)
 stepGameST dir target board = do
-  mutableGame <- thaw (unTotM board)
-  result <- applyGravityWithExceptions dir target mutableGame
-  case result of
-    Left exc -> pure (Left exc)
-    Right _ -> do
-      finalBoard <- unsafeFreeze mutableGame
-      pure (Right (mkTotM finalBoard))
+ mutableGame <- thaw (unTotM board)
+ result <- applyGravityWithExceptions dir target mutableGame
+ case result of
+  Left exc -> pure (Left exc)
+  Right _ -> do
+   finalBoard <- unsafeFreeze mutableGame
+   pure (Right (mkTotM finalBoard))
 
 -- | Apply gravity with exception-based outcome detection
 applyGravityWithExceptions :: Direction -> (Int, Int) -> TotS s
