@@ -54,8 +54,8 @@ isWon state = ...
 let result = 'dijk' weight neighbors isWon startState
 case '_dijk'target' result of
   Nothing -> putStrLn "No solution found"
-  Just winState -> do
-    let (statePath, moveSequence, totalCost) = 'recon' result winState
+  Just _ -> do
+    let (statePath, moveSequence, totalCost) = 'recon' result
     putStrLn $ "Solution: " ++ show moveSequence
 @
 -}
@@ -70,11 +70,11 @@ import qualified Data.HashPSQ               as Q
 
 -- node information:
 --
--- either start node (cost only) or step node (cost + predecessor + how)
+-- either start node or step node (cost + predecessor + how)
 --
 -- ordering the more common (almost always `Step`) constructor first. known to
 -- improve performance across the board to order constructors by frequency.
-data Node k h = Step Int k h | Start Int
+data Node k h = Step Int k h | Start
  deriving (Show)
 
 {- |
@@ -153,7 +153,7 @@ _dijk'target ~(Dijk _ t) = t
 
 lookupCost :: (Hashable k) => k -> HashMap k (Node k h) -> Int
 lookupCost k m = case M.lookup k m of
- Just (Start cost)    -> cost
+ Just Start           -> 0
  Just (Step cost _ _) -> cost
  Nothing              -> maxBound
 {-# INLINE lookupCost #-}
@@ -229,38 +229,35 @@ dijk
  -> Dijk k h -- ^ Search result
 dijk weight neighbors stop start = entry where
  -- the starting vertex has no predecessor
- entry = evalState go (Q.singleton start 0 (), M.singleton start (Start 0))
+ entry = evalState go (Q.singleton start 0 (), M.singleton start Start)
  go = do
   (bq0, costs) <- get
   case Q.minView bq0 of
-   Just (ux, _, _, _) | stop ux -> Dijk <$> gets snd <*> pure (Just ux)
+   Just (ux, _, _, _) | stop ux -> (`Dijk` Just ux) <$!> gets snd
    Just (ux, ud, _, bq1) -> do
     put (bq1, costs)
-    neighbors ux $ \(howToVx, vx) -> do
+    neighbors ux $ \(how, vx) -> do
      (bq2, costs2) <- get
      let vd0 = lookupCost vx costs2
-     let vd1 = ud + weight ux vx
-     when (vd1 < vd0) $ do
-      let newQueue = Q.insert vx vd1 () bq2
-      let newCosts = M.insert vx (Step vd1 ux howToVx) costs2
-      put (newQueue, newCosts)
+         vd1 = ud + weight ux vx
+     when (vd1 < vd0) $ put
+      ( Q.insert vx vd1 () bq2
+      , M.insert vx (Step vd1 ux how) costs2
+      )
     go
-   Nothing -> Dijk <$> gets snd <*> pure Nothing
+   Nothing -> (`Dijk` Nothing) <$!> gets snd
 {-# INLINE dijk #-}
 
 {- |
-Reconstruct the optimal path from start to a target state.
+Reconstruct the optimal path from start to the target state found by the search.
 
-Given a 'Dijk' search result and a target state, reconstructs the shortest
-path from the original start state to the target. Returns the sequence of
-intermediate states, the sequence of moves, and the total path cost.
+Given a 'Dijk' search result, reconstructs the shortest path from the original
+start state to the target state that was found during the search. Returns the
+sequence of intermediate states, the sequence of moves, and the total path cost.
 
 == Parameters
 
 * @dijkResult@: The result from running 'dijk'
-* @target@: The target state to reconstruct a path to. This should be a state
-  that was actually reached during the search (typically obtained from
-  '_dijk'target'). (But see __Notes__ for how fallback works.)
 
 == Returns
 
@@ -277,8 +274,8 @@ A tuple @(statePath, moveSequence, totalCost)@ where:
 @
 let result = 'dijk' weight neighbors isGoal startState
 case '_dijk'target' result of
-  Just target -> do
-    let (path, moves, cost) = 'recon' result target
+  Just _ -> do
+    let (path, moves, cost) = 'recon' result
     putStrLn $ "Path: " ++ show (startState : path)
     putStrLn $ "Moves: " ++ show moves
     putStrLn $ "Cost: " ++ show cost
@@ -292,17 +289,21 @@ case '_dijk'target' result of
 
 == Notes
 
-* If the target state was not reached during the search, returns empty
-  lists and cost 0
+* If no target state was found during the search, returns empty lists
+  and cost 'maxBound'
 * The move sequence can be applied in order to transform the start state
   into the target state
 * The state path excludes the start state but includes the target state
 -}
-recon :: (Hashable k) => Dijk k h -> k -> ([k], [h], Int)
-recon (Dijk costs _) target = go [] [] target 0 where
- go stateList moveList u c
-  | Just (Step d v h) <- M.lookup u costs =
-   go (v : stateList) (h : moveList) v $! c + d
-  | Just (Start d) <- M.lookup u costs = (stateList, moveList, c + d)
-  | otherwise = (stateList, moveList, c)
+
+recon :: (Hashable k) => Dijk k h -> ([k], [h], Int)
+recon (Dijk _      Nothing) = ([], [], maxBound)
+recon (Dijk costs (Just target)) = entry where
+ entry = case costs M.! target of
+  Step c k h -> case go k [target] [h] of
+   (ks, hs) -> (ks, hs, c)
+  Start -> ([], [], 0)
+ go k ks hs = case costs M.! k of
+  Step _ k' h' -> go k' (k : ks) (h' : hs)
+  Start        -> (k : ks, hs)
 {-# INLINE recon #-}

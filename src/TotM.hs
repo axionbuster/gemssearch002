@@ -172,16 +172,16 @@ applyGravity dir target game = do
  finalGame <- unsafeFreeze mutableGame
  pure (mkTotM finalGame, outcome)
 
-{- | 
+{- |
 Check the current game outcome.
 
-IMPORTANT INVARIANT: The target position should always contain Air in any valid 
+IMPORTANT INVARIANT: The target position should always contain Air in any valid
 game state. No gem, bat, or obstacle should ever occupy the target position.
 This invariant is not enforced by this function but is a fundamental requirement
 of the game mechanics. Violations may lead to undefined behavior.
 
 Returns:
-- Won: when all gems have been collected (gemCount == 0)  
+- Won: when all gems have been collected (gemCount == 0)
 - Lost: when a bat occupies the target position
 - Running: when the game is still in progress
 -}
@@ -236,11 +236,11 @@ solve startState =
  in
   case maybeWinState of
    Nothing -> Nothing  -- No winning state found
-   Just winState ->
-    let (_, moveList, _) = recon dijkResult winState
-    in if null moveList
+   Just _ ->
+    let (_, moveList, _) = recon dijkResult
+    in {-if null moveList
        then Nothing
-       else Just moveList
+       else Just moveList-} Just moveList
 
 {- |
 Create a game board from a 2D list of cells.
@@ -263,10 +263,10 @@ createBoard cells target =
   board = array gameBounds gameAssocs
  in (mkTotM board, target)
 
-{- | 
+{- |
 Pretty print a game board using the same format as input.
 
-Displays the board with '*' for target, '@' for gems, '%' for bats, 
+Displays the board with '*' for target, '@' for gems, '%' for bats,
 '#' for obstacles, and '.' for air.
 -}
 showBoard :: TotM -> (Int, Int) -> String
