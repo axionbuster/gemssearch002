@@ -1,10 +1,10 @@
 module PhysicsSpec (spec) where
 
-import Test.Hspec
-import TotM hiding (Left, Right)
+import           Control.Monad.ST.Strict
+import           Prelude                 hiding (Left, Right)
+import           Test.Hspec
 import qualified TotM
-import Control.Monad.ST.Strict
-import Prelude hiding (Left, Right)
+import           TotM                    hiding (Left, Right)
 
 spec :: Spec
 spec = do
@@ -32,7 +32,7 @@ spec = do
       outcome `shouldBe` Running
 
     it "should collect gem when it slides into target" $ do
-      -- Create a board with gem sliding into target position  
+      -- Create a board with gem sliding into target position
       let cells = [[Gem, Air, Obs]]
       let target = (0, 1)
       let (board, _) = createBoard cells target
@@ -52,7 +52,7 @@ spec = do
       -- Both gems should move right and both get collected
       totMIndex newBoard (0, 0) `shouldBe` Air
       totMIndex newBoard (0, 1) `shouldBe` Air  -- both gems collected
-      totMIndex newBoard (0, 2) `shouldBe` Air  -- target remains Air 
+      totMIndex newBoard (0, 2) `shouldBe` Air  -- target remains Air
       outcome `shouldBe` Won  -- all gems collected
 
     it "should handle gems falling out of bounds" $ do
@@ -83,3 +83,24 @@ spec = do
       let (_, outcome) = runST $ applyGravity TotM.Right target board
       -- Don't care what happens to bat position - we only care about outcome
       outcome `shouldBe` Lost
+
+    it "should detect loss when bat collides with target during Up gravity (case 2025-37 bug)" $ do
+      -- Simplified test: single bat below target, should move up and hit target
+      let cells = [ [Air, Air, Air]  -- row 0
+                  , [Air, Air, Air]  -- row 1
+                  , [Air, Air, Air]  -- row 2
+                  , [Air, Air, Air]  -- row 3
+                  , [Air, Air, Air]  -- row 4: target at (4,2)
+                  , [Air, Air, Bat]  -- row 5: bat at (5,2) below target
+                  ]
+      let target = (4, 2)  -- target position
+      let (board, _) = createBoard cells target
+      -- Debug initial state
+      totMIndex board (5, 2) `shouldBe` Bat  -- verify bat is initially at (5,2)
+      let (newBoard, outcome) = runST $ applyGravity TotM.Up target board
+      -- Check what happened to the bat that should have moved
+      let batOriginalPos = totMIndex newBoard (5, 2)  -- should be Air now
+      let targetCell = totMIndex newBoard target       -- should be Bat now
+      batOriginalPos `shouldBe` Air  -- bat should have moved away
+      targetCell `shouldBe` Bat      -- bat should be at target
+      outcome `shouldBe` Lost        -- should detect loss
