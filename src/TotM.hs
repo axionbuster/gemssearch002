@@ -85,7 +85,7 @@ data Outcome = Running | Won | Lost deriving (Eq, Show)
 -- | Result of a game operation - either an exception (end state) or continue
 type GameResult = Either GameException ()
 
-data Direction = DirUp | DirDown | DirLeft | DirRight 
+data Direction = DirUp | DirDown | DirLeft | DirRight
  deriving (Eq, Show, Enum, Bounded)
 
 instance Hashable Direction where
@@ -211,7 +211,7 @@ getCell = totMIndex
 -- * Internal Implementation with Exceptions
 
 -- | Internal step function that returns Either for exception handling
-stepGameST :: Direction -> (Int, Int) -> TotM 
+stepGameST :: Direction -> (Int, Int) -> TotM
            -> ST s (Either GameException TotM)
 stepGameST dir target board = do
   mutableGame <- thaw (unTotM board)
@@ -223,7 +223,7 @@ stepGameST dir target board = do
       pure (Right (mkTotM finalBoard))
 
 -- | Apply gravity with exception-based outcome detection
-applyGravityWithExceptions :: Direction -> (Int, Int) -> TotS s 
+applyGravityWithExceptions :: Direction -> (Int, Int) -> TotS s
                            -> ST s (Either GameException ())
 applyGravityWithExceptions dir target game = do
  bnds <- ST.getBounds game
@@ -243,30 +243,30 @@ applyGravityWithExceptions dir target game = do
     then pure (Left AllGemsCollected)
     else pure (Right ())
   where
-    tryMoveAllObjects [] = pure (Right ())
-    tryMoveAllObjects (ij:rest) = do
-      cell <- readArray game ij
-      if cell == Bat || cell == Gem
-        then do
-          result <- chainWithExceptions (nextCoord dir) target ij game
-          case result of
-            Left exc -> pure (Left exc)
-            Right _  -> tryMoveAllObjects rest
-        else tryMoveAllObjects rest
+   tryMoveAllObjects [] = pure (Right ())
+   tryMoveAllObjects (ij:rest) = do
+    cell <- readArray game ij
+    if cell == Bat || cell == Gem
+     then do
+      result <- chainWithExceptions (nextCoord dir) target ij game
+      case result of
+       Left exc -> pure (Left exc)
+       Right _  -> tryMoveAllObjects rest
+     else tryMoveAllObjects rest
 
 -- | Order coordinates based on gravity direction to avoid conflicts
 orderCoordsForGravity :: Direction -> [(Int, Int)] -> [(Int, Int)]
 orderCoordsForGravity DirUp coords = reverse coords    -- Process bottom to top
 orderCoordsForGravity DirDown coords = coords          -- Process top to bottom
 orderCoordsForGravity DirLeft coords =
-  -- Process right to left within each row
-  let grouped = groupBy (\(r1,_) (r2,_) -> r1 == r2) coords
-  in concatMap reverse grouped
+ -- Process right to left within each row
+ let grouped = groupBy (\(r1,_) (r2,_) -> r1 == r2) coords
+ in concatMap reverse grouped
 orderCoordsForGravity DirRight coords = coords         -- Process left to right
 
 -- | Chain movement with exception handling for bat hitting target
 -- | Chain movement with exception handling for bat hitting target
-chainWithExceptions :: ((Int, Int) -> (Int, Int)) -> (Int, Int) -> (Int, Int) 
+chainWithExceptions :: ((Int, Int) -> (Int, Int)) -> (Int, Int) -> (Int, Int)
                  -> TotS s -> ST s (Either GameException ())
 chainWithExceptions nf target ij0 game = go ij0
  where
@@ -369,7 +369,7 @@ solve start =
                          Left AllGemsCollected -> True
                          _                     -> False]
     in case wdirs of
-         []       -> Nothing  -- Shouldn't happen, but safety first
+         []     -> Nothing  -- Shouldn't happen, but safety first
          (wd:_) -> Just (mvs ++ [wd]){- |
 Create a game board from a 2D list of cells.
 
