@@ -29,9 +29,9 @@ spec = do
         Right _ -> expectationFailure "Expected BatHitTarget"
 
     it "should continue when no end condition met" $ do
-      -- Gem moves but doesn't reach target
-      let cells = [[Gem, Air, Obs]]
-      let target = (0, 1)
+      -- Gem moves but doesn't reach target (blocked by obstacle)
+      let cells = [[Gem, Obs, Air]]
+      let target = (0, 2)  -- target at end, gem blocked by obstacle
       let (board, _) = createBoard cells target
       let gameState = mkGameState board target
       case stepGame DirRight gameState of
