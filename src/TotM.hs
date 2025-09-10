@@ -16,7 +16,7 @@ may throw GameException. This is by design and documented behavior.
 -}
 module TotM
  ( -- * Game Types
-   GameState(..)         -- Opaque, only for step-by-step operation and debugging
+   GameState(..)         -- Opaque, only for step-by-step operation
  , TotM                  -- Opaque board representation
  , Direction(..)
  , Cell
@@ -85,7 +85,8 @@ data Outcome = Running | Won | Lost deriving (Eq, Show)
 -- | Result of a game operation - either an exception (end state) or continue
 type GameResult = Either GameException ()
 
-data Direction = DirUp | DirDown | DirLeft | DirRight deriving (Eq, Show, Enum, Bounded)
+data Direction = DirUp | DirDown | DirLeft | DirRight 
+ deriving (Eq, Show, Enum, Bounded)
 
 instance Hashable Direction where
  hashWithSalt s = hashWithSalt s . fromEnum
@@ -115,11 +116,6 @@ directionVector DirRight = (0, 1)
 nextCoord :: Direction -> (Int, Int) -> (Int, Int)
 nextCoord dir (r, c) = let (dr, dc) = directionVector dir in (r + dr, c + dc)
 
-forsI_ :: (Ord t, Monad f, Num t) => t -> t -> (t -> f a) -> f ()
-forsI_ s e f = go s where
- go i = when (i <= e) $ f i >> go (i + 1)
-{-# INLINE forsI_ #-}
-
 -- The Gem Seeker game
 --
 -- Purpose: collect all "gems" without hitting a bat.
@@ -146,44 +142,6 @@ forsI_ s e f = go s where
  --  physically necessitated.
 
 -- | Move a piece forward.
-chain
- :: ((Int, Int) -> (Int, Int))
- -> (Int, Int)
- -> (Int, Int)
- -> TotS s -> ST s ()
-chain nextCoordFn target ij0 game = go ij0 where
- -- Simple iterative algorithm: keep moving forward until stopped
- go ij = do
-  gameBounds <- getBounds game
-  let inBounds = inRange gameBounds
-  -- Only proceed if we're in bounds and have something to move
-  when (inBounds ij) $ do
-   cell <- readArray game ij
-   unless (isAir cell) $ do
-    let ij' = nextCoordFn ij
-    if not (inBounds ij')
-    then pure () -- hit boundary, stop
-    else do
-     cell' <- readArray game ij'
-     case cell' of
-      Air -> do
-       -- Move forward
-       writeArray game ij Air
-       if ij' == target && cell == Gem
-       then writeArray game ij' Air  -- gem disappears when hitting target
-       else writeArray game ij' cell
-       go ij'
-      Obs -> pure () -- hit obstacle, stop
-      _ -> do -- hit movable object
-       chain nextCoordFn target ij' game -- process the object we hit first
-       -- Try again - the space might be clear now
-       cell'' <- readArray game ij'
-       when (cell'' == Air) $ do
-        writeArray game ij Air
-        if ij' == target && cell == Gem
-        then writeArray game ij' Air  -- gem disappears when hitting target
-        else writeArray game ij' cell
-        go ij'
 
 countGems :: TotS s -> ST s Int
 countGems game = do
@@ -199,22 +157,6 @@ Moves all movable objects (gems and bats) in the specified direction until
 they hit obstacles, boundaries, or other objects. Returns the new board
 state and the game outcome.
 -}
-applyGravity :: Direction -> (Int, Int) -> TotM -> ST s (TotM, Outcome)
-applyGravity dir target game = do
- mutableGame <- thaw (unTotM game)
- ((_, _), (hm1, wm1)) <- ST.getBounds mutableGame
-
- -- Move all movable objects
- forsI_ 0 hm1 $ \i ->
-  forsI_ 0 wm1 $ \j -> do
-   cell <- readArray mutableGame (i, j)
-   when (cell == Bat || cell == Gem) $
-    chain (nextCoord dir) target (i, j) mutableGame
-
- -- Check outcome
- outcome <- checkOutcome target mutableGame
- finalGame <- unsafeFreeze mutableGame
- pure (mkTotM finalGame, outcome)
 
 {- |
 Check the current game outcome.
@@ -229,14 +171,6 @@ Returns:
 - Lost: when a bat occupies the target position
 - Running: when the game is still in progress
 -}
-checkOutcome :: (Int, Int) -> TotS s -> ST s Outcome
-checkOutcome target game = do
- targetCell <- readArray game target
- gemCount <- countGems game
- pure $ case targetCell of
-  Bat               -> Lost
-  _ | gemCount == 0 -> Won    -- all gems collected wins!
-  _                 -> Running
 
 -- | Game state for pathfinding
 data GameState = GameState
@@ -277,7 +211,8 @@ getCell = totMIndex
 -- * Internal Implementation with Exceptions
 
 -- | Internal step function that returns Either for exception handling
-stepGameST :: Direction -> (Int, Int) -> TotM -> ST s (Either GameException TotM)
+stepGameST :: Direction -> (Int, Int) -> TotM 
+           -> ST s (Either GameException TotM)
 stepGameST dir target board = do
   mutableGame <- thaw (unTotM board)
   result <- applyGravityWithExceptions dir target mutableGame
@@ -288,24 +223,25 @@ stepGameST dir target board = do
       pure (Right (mkTotM finalBoard))
 
 -- | Apply gravity with exception-based outcome detection
-applyGravityWithExceptions :: Direction -> (Int, Int) -> TotS s -> ST s (Either GameException ())
+applyGravityWithExceptions :: Direction -> (Int, Int) -> TotS s 
+                           -> ST s (Either GameException ())
 applyGravityWithExceptions dir target game = do
-  gameBounds <- ST.getBounds game
-  let coords = range gameBounds
+ bnds <- ST.getBounds game
+ let coords = range bnds
 
-  -- Process coordinates in the correct order for the gravity direction
-  let orderedCoords = orderCoordsForGravity dir coords
+ -- Process coordinates in the correct order for the gravity direction
+ let ocs = orderCoordsForGravity dir coords
 
-  -- Try to move all objects, checking for game-ending conditions
-  result <- tryMoveAllObjects orderedCoords
-  case result of
-    Left exc -> pure (Left exc)
-    Right _ -> do
-      -- Check if all gems are collected
-      gemCount <- countGems game
-      if gemCount == 0
-        then pure (Left AllGemsCollected)
-        else pure (Right ())
+ -- Try to move all objects, checking for game-ending conditions
+ result <- tryMoveAllObjects ocs
+ case result of
+  Left exc -> pure (Left exc)
+  Right _ -> do
+   -- Check if all gems are collected
+   gemCount <- countGems game
+   if gemCount == 0
+    then pure (Left AllGemsCollected)
+    else pure (Right ())
   where
     tryMoveAllObjects [] = pure (Right ())
     tryMoveAllObjects (ij:rest) = do
@@ -326,75 +262,88 @@ orderCoordsForGravity DirLeft coords =
   -- Process right to left within each row
   let grouped = groupBy (\(r1,_) (r2,_) -> r1 == r2) coords
   in concatMap reverse grouped
-orderCoordsForGravity DirRight coords = coords         -- Process left to right-- | Chain movement with exception handling for bat hitting target
-chainWithExceptions :: ((Int, Int) -> (Int, Int)) -> (Int, Int) -> (Int, Int) -> TotS s -> ST s (Either GameException ())
-chainWithExceptions nextCoordFn target ij0 game = go ij0
-  where
-    go ij = do
-      gameBounds <- ST.getBounds game
-      let inBounds = inRange gameBounds
-      if not (inBounds ij)
-        then pure (Right ())
+orderCoordsForGravity DirRight coords = coords         -- Process left to right
+
+-- | Chain movement with exception handling for bat hitting target
+-- | Chain movement with exception handling for bat hitting target
+chainWithExceptions :: ((Int, Int) -> (Int, Int)) -> (Int, Int) -> (Int, Int) 
+                 -> TotS s -> ST s (Either GameException ())
+chainWithExceptions nf target ij0 game = go ij0
+ where
+  go ij = do
+   bnds <- ST.getBounds game
+   let inBounds = inRange bnds
+   if not (inBounds ij)
+    then pure (Right ())
+    else do
+     cell <- readArray game ij
+     if isAir cell
+      then pure (Right ())
+      else do
+       let ij' = nf ij
+       if not (inBounds ij')
+        then pure (Right ()) -- hit boundary, stop
         else do
-          cell <- readArray game ij
-          if isAir cell
-            then pure (Right ())
+         cell' <- readArray game ij'
+         case cell' of
+          Air -> do
+           -- Move forward
+           writeArray game ij Air
+           -- Check for game-ending conditions BEFORE writing
+           if ij' == target
+            then case cell of
+             Gem -> do
+              writeArray game ij' Air  -- gem disappears
+              pure (Right ())
+             Bat -> pure (Left BatHitTarget)  -- bat hits target = loss
+             _ -> do
+              writeArray game ij' cell
+              go ij'
             else do
-              let ij' = nextCoordFn ij
-              if not (inBounds ij')
-                then pure (Right ()) -- hit boundary, stop
+             writeArray game ij' cell
+             go ij'
+          Obs -> pure (Right ()) -- hit obstacle, stop
+          _ -> do -- hit movable object
+           result <- chainWithExceptions nf target ij' game
+           case result of
+            Left exc -> pure (Left exc)
+            Right _ -> do
+             -- Try again - the space might be clear now
+             cell'' <- readArray game ij'
+             if cell'' == Air
+              then do
+               writeArray game ij Air
+               if ij' == target
+                then case cell of
+                 Gem -> do
+                  writeArray game ij' Air
+                  pure (Right ())
+                 Bat -> pure (Left BatHitTarget)
+                 _ -> do
+                  writeArray game ij' cell
+                  go ij'
                 else do
-                  cell' <- readArray game ij'
-                  case cell' of
-                    Air -> do
-                      -- Move forward
-                      writeArray game ij Air
-                      -- Check for game-ending conditions BEFORE writing
-                      if ij' == target
-                        then case cell of
-                          Gem -> do
-                            writeArray game ij' Air  -- gem disappears
-                            pure (Right ())
-                          Bat -> pure (Left BatHitTarget)  -- bat hits target = loss
-                          _ -> do
-                            writeArray game ij' cell
-                            go ij'
-                        else do
-                          writeArray game ij' cell
-                          go ij'
-                    Obs -> pure (Right ()) -- hit obstacle, stop
-                    _ -> do -- hit movable object
-                      result <- chainWithExceptions nextCoordFn target ij' game
-                      case result of
-                        Left exc -> pure (Left exc)
-                        Right _ -> do
-                          -- Try again - the space might be clear now
-                          cell'' <- readArray game ij'
-                          if cell'' == Air
-                            then do
-                              writeArray game ij Air
-                              if ij' == target
-                                then case cell of
-                                  Gem -> do
-                                    writeArray game ij' Air
-                                    pure (Right ())
-                                  Bat -> pure (Left BatHitTarget)
-                                  _ -> do
-                                    writeArray game ij' cell
-                                    go ij'
-                                else do
-                                  writeArray game ij' cell
-                                  go ij'
-                            else pure (Right ())
+                 writeArray game ij' cell
+                 go ij'
+              else pure (Right ())
 
 -- | Get all possible next states from current state
 neighbors :: GameState -> ForM_ (Direction, GameState)
-neighbors (GameState board target) action =
+neighbors st action =
  let directions = [DirUp, DirDown, DirLeft, DirRight] in
  forM_ directions $ \dir -> do
-  let (newBoard, outcome) = runST $ applyGravity dir target board
-  when (outcome /= Lost) $
-   void $ action (dir, GameState newBoard target)
+  case stepGame dir st of
+   Left AllGemsCollected -> pure ()  -- Don't explore further - terminal win
+   Left BatHitTarget     -> pure ()  -- Don't include losing states in search
+   Right newState        -> void $ action (dir, newState)  -- Continue exploring
+
+-- | Check if this state can lead to a win in one move
+isWinnable :: GameState -> Bool
+isWinnable st =
+ let directions = [DirUp, DirDown, DirLeft, DirRight]
+ in any (\dir -> case stepGame dir st of
+                  Left AllGemsCollected -> True
+                  _                     -> False) directions
 
 {- |
 Solve the gem seeker puzzle using uniform-cost search.
@@ -403,29 +352,25 @@ Finds the optimal sequence of gravity changes to collect all gems and reach
 the target, or returns Nothing if no solution exists.
 -}
 solve :: GameState -> Maybe [Direction]
-solve startState =
+solve start =
  let
-  isWon (GameState board target) =
-   let
-    outcome = runST $ do
-     mutableGame <- thaw (unTotM board)
-     checkOutcome target mutableGame
-   in outcome == Won
-
   weight _ _ = 1  -- each move costs 1
 
-  dijkResult = dijk weight neighbors isWon startState
-  maybeWinState = _dijk'target dijkResult
+  dr = dijk weight neighbors isWinnable start
+  mws = _dijk'target dr
  in
-  case maybeWinState of
+   case mws of
    Nothing -> Nothing  -- No winning state found
-   Just _ ->
-    let (_, moveList, _) = recon dijkResult
-    in {-if null moveList
-       then Nothing
-       else Just moveList-} Just moveList
-
-{- |
+   Just wst ->
+    let (_, mvs, _) = recon dr
+        -- Find the direction that leads to AllGemsCollected from the win state
+        wdirs = [dir | dir <- [DirUp, DirDown, DirLeft, DirRight],
+                       case stepGame dir wst of
+                         Left AllGemsCollected -> True
+                         _                     -> False]
+    in case wdirs of
+         []       -> Nothing  -- Shouldn't happen, but safety first
+         (wd:_) -> Just (mvs ++ [wd]){- |
 Create a game board from a 2D list of cells.
 
 Takes a list of rows (each row is a list of cells) and a target position,
@@ -438,12 +383,12 @@ createBoard cells target =
   cols = case cells of
    []  -> 0
    r:_ -> length r
-  gameBounds = ((0, 0), (rows - 1, cols - 1))
-  gameAssocs =
+  bnds = ((0, 0), (rows - 1, cols - 1))
+  pairs =
    [ ((r, c), cell)
    | (r, row) <- zip [0..] cells, (c, cell) <- zip [0..] row
    ]
-  board = array gameBounds gameAssocs
+  board = array bnds pairs
  in (mkTotM board, target)
 
 {- |

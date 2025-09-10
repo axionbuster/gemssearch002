@@ -91,7 +91,7 @@ test-suite gemssearch002-test
       test
   default-extensions:
       Strict
-  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N -Wno-x-partial -Wno-unrecognised-warning-flags
   build-depends:
       array
     , base >=4.7 && <5

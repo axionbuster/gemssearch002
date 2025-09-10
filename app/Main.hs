@@ -1,11 +1,11 @@
 {-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
 module Main (main) where
 
-import           Control.Exception       (evaluate)
+import           Control.Exception   (evaluate)
 import           Control.Monad
 import           TotM
-import           UnliftIO.Async          (race)
-import           UnliftIO.Concurrent     (threadDelay)
+import           UnliftIO.Async      (race)
+import           UnliftIO.Concurrent (threadDelay)
 
 charToCell :: Char -> Cell
 charToCell '.' = Air
@@ -32,7 +32,7 @@ processTestCase testNum = do
  -- Parse grid and find target
  let (cells, target) = parseGrid gridLines
  let (board, _) = createBoard cells target
- let gameState = GameState board target
+ let gameState = mkGameState board target
 
  putStrLn $ "Test case " ++ show testNum ++ ":"
 
@@ -51,7 +51,9 @@ parseGrid gridLines =
      results = zipWith parseRow [0..] gridLines
      cellRows = map fst results
      allTargets = concatMap snd results
-     target = head allTargets  -- assume exactly one target
+     target = case allTargets of
+      t : _ -> t
+      []    -> error "No target found in grid"
  in (cellRows, target)
  where
   parseRow r line =
