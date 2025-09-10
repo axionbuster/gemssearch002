@@ -302,7 +302,7 @@ recon (Dijk costs (Just target)) = entry where
  entry = case costs M.! target of
   Step c k h -> case go k [target] [h] of
    (ks, hs) -> (ks, hs, c)
-  Start -> ([], [], 0)
+  Start -> ([target], [], 0)
  go k ks hs = case costs M.! k of
   Step _ k' h' -> go k' (k : ks) (h' : hs)
   Start        -> (k : ks, hs)
