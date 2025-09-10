@@ -28,6 +28,7 @@ dependencies:
 - containers
 - transformers
 - unordered-containers
+- exceptions
 
 ghc-options:
 - -Wall

@@ -2,38 +2,38 @@ module WinConditionSpec (spec) where
 
 import Test.Hspec
 import TotM
-import Control.Monad.ST.Strict
-import Data.Array.ST
 
 spec :: Spec
 spec = do
-  describe "Win condition logic" $ do
-    it "should win when no gems left" $ do
-      -- Create a simple 2x2 board with no gems (all collected)
-      let cells = [[Air, Air], [Air, Air]]
-      let target = (1, 1)
+  describe "Win/Loss conditions via stepGame" $ do
+    it "should detect win when all gems collected" $ do
+      -- Single gem that moves to target
+      let cells = [[Gem, Air]]
+      let target = (0, 1)
       let (board, _) = createBoard cells target
-      let outcome = runST $ do
-            mutableGame <- thaw (unTotM board)
-            checkOutcome target mutableGame
-      outcome `shouldBe` Won
+      let gameState = mkGameState board target
+      case stepGame DirRight gameState of
+        Left AllGemsCollected -> return ()  -- Expected
+        Left BatHitTarget -> expectationFailure "Unexpected BatHitTarget"
+        Right _ -> expectationFailure "Expected AllGemsCollected"
 
-    it "should lose when bat is at target" $ do
-      -- Create a simple 2x2 board with bat at target
-      let cells = [[Air, Air], [Air, Bat]]
-      let target = (1, 1)
+    it "should detect loss when bat hits target" $ do
+      -- Bat that moves to target
+      let cells = [[Bat, Air]]
+      let target = (0, 1)
       let (board, _) = createBoard cells target
-      let outcome = runST $ do
-            mutableGame <- thaw (unTotM board)
-            checkOutcome target mutableGame
-      outcome `shouldBe` Lost
+      let gameState = mkGameState board target
+      case stepGame DirRight gameState of
+        Left BatHitTarget -> return ()  -- Expected
+        Left AllGemsCollected -> expectationFailure "Unexpected AllGemsCollected"
+        Right _ -> expectationFailure "Expected BatHitTarget"
 
-    it "should be running when gems remain and target is empty" $ do
-      -- Create a board with gems but target empty (as it should always be)
-      let cells = [[Gem, Air], [Air, Air]]
-      let target = (1, 1)
+    it "should continue when no end condition met" $ do
+      -- Gem moves but doesn't reach target
+      let cells = [[Gem, Air, Obs]]
+      let target = (0, 1)
       let (board, _) = createBoard cells target
-      let outcome = runST $ do
-            mutableGame <- thaw (unTotM board)
-            checkOutcome target mutableGame
-      outcome `shouldBe` Running
+      let gameState = mkGameState board target
+      case stepGame DirRight gameState of
+        Left _ -> expectationFailure "Expected game to continue"
+        Right _ -> return ()  -- Expected: game continues

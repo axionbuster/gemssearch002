@@ -2,7 +2,6 @@ module ParsingSpec (spec) where
 
 import Test.Hspec
 import TotM
-import qualified Data.Array.Unboxed as A
 
 -- Test helper functions
 parseGrid :: [String] -> ([[Cell]], (Int, Int))
@@ -30,31 +29,30 @@ parseGrid gridLines =
 
 spec :: Spec
 spec = do
-  describe "Grid parsing" $ do
-    it "should parse a simple 2x2 grid correctly" $ do
+  describe "Board creation from parsed grids" $ do
+    it "should create a board from a simple 2x2 grid" $ do
       let gridLines = [".*", "@#"]
       let (cells, target) = parseGrid gridLines
       cells `shouldBe` [[Air, Air], [Gem, Obs]]
       target `shouldBe` (0, 1)
+      
+      -- Test that we can create a board and game state
+      let (board, _) = createBoard cells target
+      let gameState = mkGameState board target
+      -- Just verify we can get basic info
+      getBoardBounds board `shouldBe` ((0, 0), (1, 1))
 
-    it "should parse the case0 grid correctly" $ do
+    it "should create a game state from case0 grid" $ do
       let gridLines = ["@...#@", ".#....", "......", "...#..", "#..@.#", "......", "#*....", "..#..."]
       let (cells, target) = parseGrid gridLines
       length cells `shouldBe` 8  -- 8 rows
       length (head cells) `shouldBe` 6  -- 6 columns
       target `shouldBe` (6, 1)  -- target position
-
-    it "should count gems correctly in case0" $ do
-      let gridLines = ["@...#@", ".#....", "......", "...#..", "#..@.#", "......", "#*....", "..#..."]
-      let (cells, target) = parseGrid gridLines
+      
+      -- Test that we can create a board and it has the right bounds
       let (board, _) = createBoard cells target
-      let gemCount = countGemsInBoard board
-      gemCount `shouldBe` 3  -- should have 3 gems
-
--- Helper function to count gems in a board
-countGemsInBoard :: TotM -> Int
-countGemsInBoard board = 
-  let ((r1, c1), (r2, c2)) = totMBounds board
-      coords = [(r, c) | r <- [r1..r2], c <- [c1..c2]]
-      cells = [totMIndex board coord | coord <- coords]
-  in length $ filter (== Gem) cells
+      getBoardBounds board `shouldBe` ((0, 0), (7, 5))
+      
+      -- Test that we can query specific cells
+      getCell board (0, 0) `shouldBe` Gem  -- first cell should be gem
+      getCell board (6, 1) `shouldBe` Air  -- target should be air

@@ -40,6 +40,7 @@ library
       array
     , base >=4.7 && <5
     , containers
+    , exceptions
     , hashable
     , mtl
     , psqueues
@@ -62,6 +63,7 @@ executable gemssearch002-exe
       array
     , base >=4.7 && <5
     , containers
+    , exceptions
     , gemssearch002
     , hashable
     , mtl
@@ -94,6 +96,7 @@ test-suite gemssearch002-test
       array
     , base >=4.7 && <5
     , containers
+    , exceptions
     , gemssearch002
     , hashable
     , hspec

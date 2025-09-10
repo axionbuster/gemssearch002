@@ -3,8 +3,7 @@ module Main (main) where
 
 import           Control.Exception       (evaluate)
 import           Control.Monad
-import           Control.Monad.ST.Strict
-import           TotM                    hiding (Left, Right)
+import           TotM
 import           UnliftIO.Async          (race)
 import           UnliftIO.Concurrent     (threadDelay)
 
@@ -74,10 +73,13 @@ simulateSteps initialState directions = do
   go _ [] _ = putStrLn "Complete!"
   go currentState (dir:rest) stepNum = do
    putStrLn $ "Step " ++ show stepNum ++ ": Apply gravity " ++ show dir
-   let (newBoard, outcome) = runST $ applyGravity dir (gsTarget currentState) (gsBoard currentState)
-   let newState = GameState newBoard (gsTarget currentState)
-   putStrLn $ showBoard newBoard (gsTarget currentState)
-   case outcome of
-    Won     -> putStrLn "Won!"
-    Lost    -> putStrLn "Lost!"
-    Running -> go newState rest (stepNum + 1)
+   case stepGame dir currentState of
+    Left BatHitTarget -> do
+     putStrLn $ showBoard (gsBoard currentState) (gsTarget currentState)
+     putStrLn "Lost!"
+    Left AllGemsCollected -> do
+     putStrLn $ showBoard (gsBoard currentState) (gsTarget currentState)
+     putStrLn "Won!"
+    Right newState -> do
+     putStrLn $ showBoard (gsBoard newState) (gsTarget newState)
+     go newState rest (stepNum + 1)

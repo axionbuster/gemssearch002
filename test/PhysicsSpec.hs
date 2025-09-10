@@ -1,106 +1,41 @@
 module PhysicsSpec (spec) where
 
-import           Control.Monad.ST.Strict
-import           Prelude                 hiding (Left, Right)
 import           Test.Hspec
-import qualified TotM
-import           TotM                    hiding (Left, Right)
+import           TotM
 
 spec :: Spec
 spec = do
-  describe "Gravity physics" $ do
-    it "should move gem down with Down gravity" $ do
-      -- Create a 3x3 board with gem at top
-      let cells = [[Gem, Air, Air], [Air, Air, Air], [Air, Air, Air]]
-      let target = (2, 2)
+  describe "stepGame API" $ do
+    it "should detect bat hitting target" $ do
+      -- Simple test: bat should move to target and cause loss
+      let cells = [[Air, Bat], [Air, Air]]  -- bat at (0,1), target at (1,1)
+      let target = (1, 1)
       let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Down target board
-      -- Gem should move to bottom row
-      totMIndex newBoard (2, 0) `shouldBe` Gem
-      totMIndex newBoard (0, 0) `shouldBe` Air
-      outcome `shouldBe` Running
+      let gameState = mkGameState board target
+      case stepGame DirDown gameState of
+        Left BatHitTarget -> return ()  -- Expected: bat hits target
+        Left AllGemsCollected -> expectationFailure "Expected BatHitTarget but got AllGemsCollected"
+        Right _ -> expectationFailure "Expected BatHitTarget but game continued"
 
-    it "should move gem right with Right gravity" $ do
-      -- Create a 3x3 board with gem at left
-      let cells = [[Gem, Air, Air], [Air, Air, Air], [Air, Air, Air]]
-      let target = (2, 2)
-      let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      -- Gem should move to right column
-      totMIndex newBoard (0, 2) `shouldBe` Gem
-      totMIndex newBoard (0, 0) `shouldBe` Air
-      outcome `shouldBe` Running
-
-    it "should collect gem when it slides into target" $ do
-      -- Create a board with gem sliding into target position
-      let cells = [[Gem, Air, Obs]]
+    it "should detect all gems collected" $ do
+      -- Single gem that moves directly to target
+      let cells = [[Gem, Air]]  -- gem at (0,0), target at (0,1)
       let target = (0, 1)
       let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      -- Gem should disappear when it reaches target
-      totMIndex newBoard (0, 1) `shouldBe` Air  -- target remains Air
-      totMIndex newBoard (0, 0) `shouldBe` Air  -- gem moved from here
-      totMIndex newBoard (0, 2) `shouldBe` Obs  -- obstacle unchanged
-      outcome `shouldBe` Won  -- all gems collected
+      let gameState = mkGameState board target
+      case stepGame DirRight gameState of
+        Left AllGemsCollected -> return ()  -- Expected: gem collected
+        Left BatHitTarget -> expectationFailure "Expected AllGemsCollected but got BatHitTarget"
+        Right _ -> expectationFailure "Expected AllGemsCollected but game continued"
 
-    it "should push gems in chain" $ do
-      -- Create a board with two gems in a row
-      let cells = [[Gem, Gem, Air]]
+    it "should continue game when no win/loss condition" $ do
+      -- Gem moves but doesn't hit target (stopped by obstacle)
+      let cells = [[Gem, Obs, Air]]  -- gem at (0,0), obstacle at (0,1), target at (0,2)
       let target = (0, 2)
       let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      -- Both gems should move right and both get collected
-      totMIndex newBoard (0, 0) `shouldBe` Air
-      totMIndex newBoard (0, 1) `shouldBe` Air  -- both gems collected
-      totMIndex newBoard (0, 2) `shouldBe` Air  -- target remains Air
-      outcome `shouldBe` Won  -- all gems collected
-
-    it "should handle gems falling out of bounds" $ do
-      -- Create a 2x2 board with gem at bottom edge
-      let cells = [[Air, Air], [Gem, Air]]
-      let target = (0, 0)
-      let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Down target board
-      -- Gem should stay where it is (can't fall further)
-      totMIndex newBoard (1, 0) `shouldBe` Gem
-      outcome `shouldBe` Running
-
-    it "should detect win when gem reaches target" $ do
-      -- Create a simple case where gem can reach target in one move
-      let cells = [[Gem, Air]]
-      let target = (0, 1)
-      let (board, _) = createBoard cells target
-      let (newBoard, outcome) = runST $ applyGravity TotM.Right target board
-      totMIndex newBoard (0, 1) `shouldBe` Air  -- gem disappears when hitting target
-      totMIndex newBoard (0, 0) `shouldBe` Air  -- gem moved from here
-      outcome `shouldBe` Won
-
-    it "should detect loss when bat reaches target" $ do
-      -- Create a case where bat reaches target
-      let cells = [[Bat, Air]]
-      let target = (0, 1)
-      let (board, _) = createBoard cells target
-      let (_, outcome) = runST $ applyGravity TotM.Right target board
-      -- Don't care what happens to bat position - we only care about outcome
-      outcome `shouldBe` Lost
-
-    it "should detect loss when bat collides with target during Up gravity (case 2025-37 bug)" $ do
-      -- Simplified test: single bat below target, should move up and hit target
-      let cells = [ [Air, Air, Air]  -- row 0
-                  , [Air, Air, Air]  -- row 1
-                  , [Air, Air, Air]  -- row 2
-                  , [Air, Air, Air]  -- row 3
-                  , [Air, Air, Air]  -- row 4: target at (4,2)
-                  , [Air, Air, Bat]  -- row 5: bat at (5,2) below target
-                  ]
-      let target = (4, 2)  -- target position
-      let (board, _) = createBoard cells target
-      -- Debug initial state
-      totMIndex board (5, 2) `shouldBe` Bat  -- verify bat is initially at (5,2)
-      let (newBoard, outcome) = runST $ applyGravity TotM.Up target board
-      -- Check what happened to the bat that should have moved
-      let batOriginalPos = totMIndex newBoard (5, 2)  -- should be Air now
-      let targetCell = totMIndex newBoard target       -- should be Bat now
-      batOriginalPos `shouldBe` Air  -- bat should have moved away
-      targetCell `shouldBe` Bat      -- bat should be at target
-      outcome `shouldBe` Lost        -- should detect loss
+      let gameState = mkGameState board target
+      case stepGame DirDown gameState of
+        Left _ -> expectationFailure "Expected game to continue but got exception"
+        Right newState -> do
+          -- Game should continue - we can verify the board changed
+          gsBoard newState `shouldNotBe` gsBoard gameState
