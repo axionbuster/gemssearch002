@@ -1,10 +1,12 @@
 {-# LANGUAGE PatternSynonyms #-}
 module TotM2
- ( Game(..), IA(..), Direction(..), Exc(..), Cell, pattern Air
+ ( Game(..), Direction(..), Exc(..), Cell, pattern Air
  , pattern Bat, pattern Gem, pattern Obs
  , moveGame
+ , buildGame
  , SA(..)
  , w2cell, cell2w, readSA, writeSA
+ , IA(..)
  ) where
 
 import           Control.Monad
@@ -24,12 +26,14 @@ import           TotM                    (Cell, pattern Air, pattern Bat,
 quotRem4 :: Int -> (Int, Int)
 quotRem4 n = (n .>>. 2, n .&. 0b11)
 
+-- | Immutable array
 newtype IA = IA (UArray (Int, Int) Word) deriving newtype (Eq, Ord)
 
 instance Hashable IA where
  hashWithSalt salt ~(IA (UArray _ _ _ ba)) = hashWithSalt salt (ByteArray ba)
  {-# INLINE hashWithSalt #-}
 
+-- | Stateful array, bit-packed
 newtype SA s = SA (STUArray s (Int, Int) Word)
 
 w2cell :: Word -> Cell
@@ -60,18 +64,50 @@ readIR (IR x) = readArray x 0
 writeIR :: MArray (STUArray s) Int m => IntRef s -> Int -> m ()
 writeIR (IR x) = writeArray x 0
 
-data Game = Game IA (Int, Int) Int -- board, target, gem count (cached)
+-- | Immutable game
+data Game = Game
+ { _game'board  :: IA
+ , _game'target :: (Int, Int)
+ , _game'gemCnt :: Int
+ , _game'height :: Int
+ , _game'width  :: Int
+ }
  deriving (Eq, Ord, Generic)
 instance Hashable Game
 data MGame s =
  MGame
   (SA s) -- board
   (Int, Int) -- target
-  (Int, Int) -- last allowed row and column; (height - 1, width - 1)
-  (IntRef s) -- gem count (cached)
+  Int -- height
+  Int -- width
+  (IntRef s) -- gem count
+
 -- | If we won, we wanna see the outcome
 data Exc a = Won a | Lost deriving (Eq, Ord, Generic)
 instance Hashable a => Hashable (Exc a)
+
+-- | @buildGame h w target cellAt@ will build the game with a height of
+-- @h@, width of @w@, a target cell (must be 'Air') at @target@, and
+-- with a pure accessor function of @cellAt@.
+buildGame :: Int -> Int -> (Int, Int) -> ((Int, Int) -> Cell) -> Game
+buildGame h w target cellAt =
+ let
+  wWords = (w + 3) `quot` 4
+  bounds' = ((0, 0), (h - 1, wWords - 1))
+  (arr, gems) = runST $ do
+   sa <- newArray bounds' 0
+   gemsRef <- newIR 0
+   forI0_ (h - 1) $ \r ->
+    forI0_ (w - 1) $ \c -> do
+     let cell = cellAt (r, c)
+     when (cell == Gem) $ do
+      g <- readIR gemsRef
+      writeIR gemsRef (g + 1)
+     writeSA (SA sa) (r, c) cell
+   frozenArr <- unsafeFreeze sa
+   finalGems <- readIR gemsRef
+   pure (IA frozenArr, finalGems)
+ in Game arr target gems h w
 
 type Next = (Int, Int) -> (Int, Int)
 
@@ -80,8 +116,8 @@ movable = \case Gem -> True; Bat -> True; _ -> False
 
 -- try to move the piece - last parameter indicates its location
 chain :: MGame s -> Next -> (Int, Int) -> ExceptT (Exc (MGame s)) (ST s) ()
-chain game@(MGame board target (hm1, wm1) ngems) next = go0 where
- locationGood = inRange ((0, 0), (hm1, wm1))
+chain game@(MGame board target h w ngems) next = go0 where
+ locationGood = inRange ((0, 0), (h - 1, w - 1))
  go0 (r, c) = when (locationGood (r, c)) $ do
   let here = (r, c)
   this <- lift $ readSA board here
@@ -110,7 +146,7 @@ chain game@(MGame board target (hm1, wm1) ngems) next = go0 where
      -- the movables, which is why 'chain' can be called in any order.
      chain game next there -- *** recursion! try to move that thing.
      that' <- lift $ readSA board there -- did it move?
-     when (movable that') $ go0 here -- if it did, try again.
+     unless (movable that') $ go0 here -- if it did, try again.
 {-# INLINE chain #-}
 
 data Direction = DirUp | DirDown | DirLeft | DirRight
@@ -120,35 +156,35 @@ data Direction = DirUp | DirDown | DirLeft | DirRight
 -- is still unreliable, as of GHC 9.12.2, so we express our loop directly.
 forI0_ :: (Ord t, Monad f, Num t) => t -> (t -> f a) -> f ()
 forI0_ e f = go 0 where go i = when (i <= e) $ f i >> go (i + 1)
+{-# INLINE forI0_ #-}
 
 moveGameTmpl :: Game -> Next -> Either (Exc Game) Game
-moveGameTmpl game@(Game (IA board) target gems) next
- | gems < 1 = Right game
+moveGameTmpl game@(Game (IA board) target gems h w) next
+ | gems < 1 = Left (Won game)
  | otherwise = runST $ do
-  let upperBounds = snd $ bounds board
   mboard <- SA <$> thaw board
   mgems <- newIR gems
-  res <- runExceptT $ do
-   forI0_ (fst upperBounds) $ \r -> do
-    forI0_ (snd upperBounds) $ \c -> do
-     chain (MGame mboard target upperBounds mgems) next (r, c)
+  let mgame = MGame mboard target h w mgems
+  res <- runExceptT $ forI0_ (h - 1) $ \r -> forI0_ (w - 1) $ \c ->
+   chain mgame next (r, c)
   let
-   freezeGame (MGame mb _ _ mg) = do
+   freezeGame (MGame mb _ h' w' mg) = do
     board' <- IA <$!> case mb of SA m -> unsafeFreeze m
     gems' <- readIR mg
-    pure $! Game board' target gems'
+    pure $! Game board' target gems' h' w'
   case res of
    Left Lost -> pure $ Left Lost
-   Left (Won g) -> Right <$!> freezeGame g
+   Left (Won g) -> Left . Won <$!> freezeGame g
    Right () -> do
-    board' <- IA <$!> case mboard of SA mb -> unsafeFreeze mb
-    gems' <- readIR mgems
-    let game' = Game board' target gems'
-    pure $ if gems' == 0
+    game' <- freezeGame mgame
+    pure $! if _game'gemCnt game' == 0
     then Left (Won game')
-    else Right $! Game board' target gems'
+    else Right game'
 {-# INLINE moveGameTmpl #-}
 
+-- | Change the direction of gravity, causing movable pieces to move.
+-- If this function returns a 'Left' value, the game is over. Otherwise
+-- ('Right'), the game is ongoing.
 moveGame :: Game -> Direction -> Either (Exc Game) Game
 moveGame game = \case
  DirUp ->    moveGameTmpl game $ first (subtract 1)
