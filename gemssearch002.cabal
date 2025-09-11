@@ -26,6 +26,7 @@ source-repository head
 library
   exposed-modules:
       Dijk
+      SolveTotM2
       TotM
       TotM2
   other-modules:
