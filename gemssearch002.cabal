@@ -75,6 +75,31 @@ executable gemssearch002-exe
     , unordered-containers
   default-language: GHC2024
 
+executable gemssearch002-v2-exe
+  main-is: Main.hs
+  other-modules:
+      Paths_gemssearch002
+  autogen-modules:
+      Paths_gemssearch002
+  hs-source-dirs:
+      app-v2
+  default-extensions:
+      Strict
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wmissing-export-lists -Wmissing-home-modules -Wpartial-fields -Wredundant-constraints -O2 -threaded -rtsopts -with-rtsopts=-N -ddump-to-file -ddump-simpl -threaded -rtsopts -with-rtsopts=-N
+  build-depends:
+      array
+    , base >=4.7 && <5
+    , containers
+    , exceptions
+    , gemssearch002
+    , hashable
+    , mtl
+    , psqueues
+    , transformers
+    , unliftio
+    , unordered-containers
+  default-language: GHC2024
+
 test-suite gemssearch002-test
   type: exitcode-stdio-1.0
   main-is: Spec.hs
