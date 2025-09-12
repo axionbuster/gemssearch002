@@ -110,6 +110,7 @@ test-suite gemssearch002-test
       OriginalSpec
       ParsingSpec
       PhysicsSpec
+      TotM2.MovementSpec
       WinConditionSpec
       Paths_gemssearch002
   autogen-modules:

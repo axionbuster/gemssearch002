@@ -1,11 +1,10 @@
+{-# OPTIONS_GHC -Wno-incomplete-uni-patterns #-}
+module TotM2.MovementSpec (spec) where
 import           Control.Monad
 import           Data.Array.Unboxed
-import           Data.Foldable
 import           Data.Function
 import qualified Data.List          as List
-import           Debug.Trace
-import           SolveTotM2
-import           Text.Printf
+import           Test.Hspec
 import           TotM2
 
 showArray1 :: (Int, Int) -> (Int, Int) -> UArray (Int, Int) Cell -> String
@@ -20,7 +19,7 @@ showGame :: Game -> String
 showGame game@(Game _ target _ height width) =
  showArray1 (height, width) target $ teardownGameBoard game
 
-admitBoard :: (Int, Int) -> String -> Maybe ([Game], [Direction])
+admitBoard :: (Int, Int) -> String -> Game
 admitBoard (h, w) s =
  let
   bounds_ = ((0, 0), (h - 1, w - 1))
@@ -28,25 +27,19 @@ admitBoard (h, w) s =
   cvtchar = \case '#' -> Obs; '%' -> Bat; '@' -> Gem; _ -> Air
   assocs_ = zip indices_ $ cvtchar <$!> s
   proto = accumArray @UArray (\_ x -> x) Air bounds_ assocs_
-  target = case find (\(_, c) -> c == '*') (zip indices_ s) of
+  target = case List.find (\(_, c) -> c == '*') (zip indices_ s) of
    Just (loc, _) -> loc
    Nothing       -> error "admitBoard: target cell not found in user input"
-  in solve proto target
+  in buildGame h w target (proto !)
 
-forI_ :: (Monad m) => Int -> Int -> (Int -> m a) -> m ()
-forI_ s e f = go s where go i = when (i <= e) $ f i >> go (i + 1)
-{-# INLINE forI_ #-}
+newtype ShowGame = ShowGame Game deriving (Eq)
+instance Show ShowGame where
+ show (ShowGame g) = showGame g
 
-main :: IO ()
-main = do
- ncases <- readLn
- forI_ 1 ncases $ \casenum -> do
-  printf "Test case %v:\n" casenum
-  [w, h] <- map read . words <$> getLine
-  ls <- concat <$> replicateM h getLine
-  case admitBoard (h, w) ls of
-   Just (states, directions) -> do
-    forM_ states $ traceIO . showGame
-    traceIO (show directions)
-    error "yes, but i don't know what to do yet"
-   Nothing                   -> putStrLn "no"
+spec :: Spec
+spec = describe "TotM2.MovementSpec" $ do
+ it "should not cause walls to move" $ do
+  -- common array
+  let game = admitBoard (3, 5) $ concat ["@@@@.", "####.", "....*"]
+  let Right down = moveGame game DirDown
+  ShowGame down `shouldBe` ShowGame game

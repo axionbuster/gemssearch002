@@ -23,9 +23,6 @@ import           GHC.Generics
 import           TotM                    (Cell, pattern Air, pattern Bat,
                                           pattern Gem, pattern Obs)
 
-quotRem4 :: Int -> (Int, Int)
-quotRem4 n = (n .>>. 2, n .&. 0b11)
-
 -- | Immutable array
 newtype IA = IA (UArray (Int, Int) Word) deriving newtype (Eq, Ord)
 
@@ -43,18 +40,26 @@ cell2w :: Cell -> Word
 cell2w = fromIntegral
 
 readSA :: SA s -> (Int, Int) -> ST s Cell
-readSA (SA sa) (r, c) = case quotRem4 c of
- (cq, cr) -> (\w -> w2cell $ (w .>>. cr) .&. 0b11) <$!> readArray sa (r, cq)
+readSA (SA sa) (r, c) = case quotRemWord c of
+ (cq, cr) -> (\w -> w2cell $ (w .>>. (2 * cr)) .&. 0b11) <$!>
+  readArray sa (r, cq)
 {-# INLINE readSA #-}
 
 writeSA :: SA s -> (Int, Int) -> Cell -> ST s ()
-writeSA (SA s) (r, c) v = case quotRem4 c of
+writeSA (SA s) (r, c) v = case quotRemWord c of
  (cq, cr) -> do
   w1 <- readArray s (r, cq)
-  let w2 = w1 .&. complement (0b11 .<<. cr)
-      w3 = w2 .|. (cell2w v .<<. cr)
+  let w2 = w1 .&. complement (0b11 .<<. (2 * cr))
+      w3 = w2 .|. (cell2w v .<<. (2 * cr))
   writeArray s (r, cq) w3
 {-# iNLINE writeSA #-}
+
+quotRemWord :: Int -> (Int, Int)
+quotRemWord n = case finiteBitSize (0 :: Word) of
+ -- two bits each
+ 64 -> (n .>>. 5, n .&. 0b11111) -- 32
+ 32 -> (n .>>. 4, n .&.  0b1111) -- 16
+ _  -> error "quotRemWord: unknown finiteBitSize of Word"
 
 newtype IntRef s = IR (STUArray s Int Int)
 newIR :: Int -> ST s (IntRef s)
@@ -92,7 +97,7 @@ instance Hashable a => Hashable (Exc a)
 buildGame :: Int -> Int -> (Int, Int) -> ((Int, Int) -> Cell) -> Game
 buildGame h w target cellAt =
  let
-  wWords = (w + 3) `quot` 4
+  wWords = case quotRemWord w of (wq, wr) -> wq + fromEnum (wr /= 0)
   bounds' = ((0, 0), (h - 1, wWords - 1))
   (arr, gems) = runST $ do
    sa <- newArray bounds' 0
@@ -109,14 +114,15 @@ buildGame h w target cellAt =
    pure (IA frozenArr, finalGems)
  in Game arr target gems h w
 
--- | Translate the bit packed representation to the expanded representation
+-- | Bit-expand the 2-bit-per-cell-encoded board.
 teardownGameBoard :: Game -> UArray (Int, Int) Cell
 teardownGameBoard (Game (IA board) _ _ height width) = do
  runSTUArray $ do
   arr1 <- newArray ((0, 0), (height - 1, width - 1)) 0
   forI0_ (height - 1) $ \r -> forI0_ (width - 1) $ \c -> do
-   let (q, re) = c `quotRem` 4
-   let b = fromIntegral $ ((board ! (r, q)) .>>. re) .&. 0b11
+   -- we don't have the equivalent of `readSA` for IA, so we improvise.
+   let (q, re) = quotRemWord c
+   let b = fromIntegral $ ((board ! (r, q)) .>>. (2 * re)) .&. 0b11
    writeArray arr1 (r, c) b
   pure arr1
 
