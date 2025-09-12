@@ -65,7 +65,18 @@ executables:
     dependencies:
     - gemssearch002
     - unliftio
-    
+
+  gemssearch002-v2-exe:
+    main:               Main.hs
+    source-dirs:        app-v2
+    ghc-options:
+    - -threaded
+    - -rtsopts
+    - -with-rtsopts=-N
+    dependencies:
+    - gemssearch002
+    - unliftio
+  
   # gemssearch002-exe-prof:
   #   main:                Main.hs
   #   source-dirs:         app

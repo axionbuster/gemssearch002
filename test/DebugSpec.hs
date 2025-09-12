@@ -1,7 +1,7 @@
 module DebugSpec (spec) where
 
-import Test.Hspec
-import TotM
+import           Test.Hspec
+import           TotM
 
 spec :: Spec
 spec = do
@@ -12,7 +12,7 @@ spec = do
       let target = (0, 1)
       let (board, _) = createBoard cells target
       let gameState = mkGameState board target
-      
+
       case stepGame DirRight gameState of
         Left AllGemsCollected -> return ()  -- Expected: gem collected
         Left BatHitTarget -> expectationFailure "Unexpected BatHitTarget"
@@ -24,7 +24,7 @@ spec = do
       let target = (0, 2)
       let (board, _) = createBoard cells target
       let gameState = mkGameState board target
-      
+
       case stepGame DirRight gameState of
         Left AllGemsCollected -> return ()  -- Expected: all gems collected
         Left BatHitTarget -> expectationFailure "Unexpected BatHitTarget"
@@ -36,7 +36,7 @@ spec = do
       let target = (0, 1)
       let (board, _) = createBoard cells target
       let gameState = mkGameState board target
-      
+
       -- Test solver
       let result = solve gameState
       result `shouldSatisfy` (\case Just _ -> True; Nothing -> False)

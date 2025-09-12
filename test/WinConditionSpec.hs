@@ -1,7 +1,7 @@
 module WinConditionSpec (spec) where
 
-import Test.Hspec
-import TotM
+import           Test.Hspec
+import           TotM
 
 spec :: Spec
 spec = do
@@ -14,8 +14,8 @@ spec = do
       let gameState = mkGameState board target
       case stepGame DirRight gameState of
         Left AllGemsCollected -> return ()  -- Expected
-        Left BatHitTarget -> expectationFailure "Unexpected BatHitTarget"
-        Right _ -> expectationFailure "Expected AllGemsCollected"
+        Left BatHitTarget     -> expectationFailure "Unexpected BatHitTarget"
+        Right _               -> expectationFailure "Expected AllGemsCollected"
 
     it "should detect loss when bat hits target" $ do
       -- Bat that moves to target
@@ -35,5 +35,5 @@ spec = do
       let (board, _) = createBoard cells target
       let gameState = mkGameState board target
       case stepGame DirRight gameState of
-        Left _ -> expectationFailure "Expected game to continue"
+        Left _  -> expectationFailure "Expected game to continue"
         Right _ -> return ()  -- Expected: game continues
