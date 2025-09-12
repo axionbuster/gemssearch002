@@ -150,7 +150,10 @@ chain game@(MGame board target h w ngems) next = go0 where
       then lift $ do
        writeIR ngems (gems - 1)
        writeSA board here Air
-      else lift (writeIR ngems 0) >> (throwError $! Won game)
+      else do
+       lift $ writeIR ngems 0
+       lift $ writeSA board here Air
+       throwError $! Won game
     Air -> do
      lift $ do
       writeSA board there this
