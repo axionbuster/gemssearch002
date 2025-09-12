@@ -3,7 +3,6 @@ import           Data.Array.Unboxed
 import           Data.Foldable
 import           Data.Function
 import qualified Data.List          as List
-import           Debug.Trace
 import           SolveTotM2
 import           Text.Printf
 import           TotM2
@@ -41,12 +40,22 @@ main :: IO ()
 main = do
  ncases <- readLn
  forI_ 1 ncases $ \casenum -> do
-  printf "Test case %v:\n" casenum
+  printf "Test case %v:\nyes\n" casenum
   [w, h] <- map read . words <$> getLine
   ls <- concat <$> replicateM h getLine
   case admitBoard (h, w) ls of
-   Just (states, directions) -> do
-    forM_ states $ traceIO . showGame
-    traceIO (show directions)
-    error "yes, but i don't know what to do yet"
-   Nothing                   -> putStrLn "no"
+   Just (initial : states, directions) -> do
+    putStrLn "Initial state:"
+    putStrLn $ showGame initial
+    putStrLn ""
+    let
+     go i (s : ss) (d : ds) = do
+      printf "Step %v: Apply gravity %v\n" i (show d)
+      putStrLn $ showGame s
+      putStrLn ""
+      go (i + 1) ss ds
+     go _ _ _ = pure ()
+    go (1 :: Int) states directions
+    putStrLn "Won!"
+   Just ([], _) -> putStrLn "no"
+   Nothing      -> putStrLn "no"
