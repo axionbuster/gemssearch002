@@ -191,7 +191,7 @@ moveGameTmpl game@(Game (IA board) target gems h w) next
    freezeGame (MGame mb _ h' w' mg) = do
     board' <- IA <$> case mb of SA m -> unsafeFreeze m
     gems' <- readIR mg
-    pure $! Game board' target gems' h' w'
+    pure $ Game board' target gems' h' w'
   case res of
    Left Lost -> pure $ Left Lost
    Left (Won g) -> Left . Won <$> freezeGame g
