@@ -6,7 +6,7 @@ module TotM2
  , buildGame
  , SA(..)
  , w2cell, cell2w, readSA, writeSA
- , IA(..)
+ , IA(..), teardownGameBoard
  ) where
 
 import           Control.Monad
@@ -108,6 +108,17 @@ buildGame h w target cellAt =
    finalGems <- readIR gemsRef
    pure (IA frozenArr, finalGems)
  in Game arr target gems h w
+
+-- | Translate the bit packed representation to the expanded representation
+teardownGameBoard :: Game -> UArray (Int, Int) Cell
+teardownGameBoard (Game (IA board) _ _ height width) = do
+ runSTUArray $ do
+  arr1 <- newArray ((0, 0), (height - 1, width - 1)) 0
+  forI0_ (height - 1) $ \r -> forI0_ (width - 1) $ \c -> do
+   let (q, re) = c `quotRem` 4
+   let b = fromIntegral $ ((board ! (r, q)) .>>. re) .&. 0b11
+   writeArray arr1 (r, c) b
+  pure arr1
 
 type Next = (Int, Int) -> (Int, Int)
 
