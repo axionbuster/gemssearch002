@@ -189,12 +189,12 @@ moveGameTmpl game@(Game (IA board) target gems h w) next
    chain mgame next (r, c)
   let
    freezeGame (MGame mb _ h' w' mg) = do
-    board' <- IA <$!> case mb of SA m -> unsafeFreeze m
+    board' <- IA <$> case mb of SA m -> unsafeFreeze m
     gems' <- readIR mg
     pure $! Game board' target gems' h' w'
   case res of
    Left Lost -> pure $ Left Lost
-   Left (Won g) -> Left . Won <$!> freezeGame g
+   Left (Won g) -> Left . Won <$> freezeGame g
    Right () -> do
     game' <- freezeGame mgame
     pure $! if _game'gemCnt game' == 0
