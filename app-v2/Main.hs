@@ -1,9 +1,19 @@
 import           Control.Monad
 import           Data.Array.Unboxed
 import           Data.Foldable
+import           Data.Function
+import qualified Data.List          as List
+import           Debug.Trace
 import           SolveTotM2
 import           Text.Printf
 import           TotM2
+
+showArray1 :: (Int, Int) -> UArray (Int, Int) Cell -> String
+showArray1 (h, w) arr1 = do
+ let ran0 = range ((0, 0), (h - 1, w - 1)) & List.groupBy ((==) `on` fst)
+ let unchar Air = '.'; unchar Gem = '@'; unchar Bat = '%'; unchar _ = '#'
+ let lines_ = map (map (unchar . (arr1 !))) ran0
+ List.intercalate "\n" lines_
 
 admitBoard :: (Int, Int) -> String -> Maybe ([Game], [Direction])
 admitBoard (h, w) s =
@@ -16,7 +26,7 @@ admitBoard (h, w) s =
   target = case find (\(_, c) -> c == '*') (zip indices_ s) of
    Just (loc, _) -> loc
    Nothing       -> error "admitBoard: target cell not found in user input"
-  in solve proto target
+  in trace (showArray1 (h, w) proto) solve proto target
 
 forI_ :: (Monad m) => Int -> Int -> (Int -> m a) -> m ()
 forI_ s e f = go s where go i = when (i <= e) $ f i >> go (i + 1)
@@ -27,8 +37,10 @@ main = do
  ncases <- readLn
  forI_ 1 ncases $ \casenum -> do
   printf "Test case %v:\n" casenum
-  [h, w] <- map read . words <$> getLine
-  ls <- concat <$> replicateM h getLine
+  [w, h] <- map read . words <$> getLine
+  ls <- concat <$> replicateM h (traceShowId <$> getLine)
   case admitBoard (h, w) ls of
    Just (states, directions) -> error "yes, but i don't know what to do yet"
    Nothing                   -> putStrLn "no"
+
+-- ..#%%#....................*.........
