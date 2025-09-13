@@ -149,24 +149,6 @@ echo "1
 ..#..." | stack exec gemssearch002-exe
 ```
 
-## Web Port
-
-A TypeScript/JavaScript web version is available in the `web-port/` directory:
-
-```bash
-cd web-port
-npm install
-npm run build
-npm run serve
-```
-
-This provides:
-- Interactive pairing heap demonstration
-- Efficient priority queue implementation for web browsers
-- Foundation for a client-side web version of the game solver
-
-See `web-port/README.md` for detailed web development instructions.
-
 ## License
 
 BSD-3-Clause
