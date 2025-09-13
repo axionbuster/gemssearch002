@@ -1,3 +1,19 @@
+-- |
+-- Module      : SolveTotM2
+-- Description : High-level solver for the Gem Seeker minigame
+-- Copyright   : (c) 2025 axionbuster
+-- License     : BSD-3-Clause
+-- Maintainer  : axionbuster
+--
+-- This module provides a high-level interface for solving the Gem Seeker
+-- minigame. It uses Dijkstra's algorithm, implemented in the 'Dijk' module, to
+-- find the shortest path from an initial game state to a winning state. The
+-- solver explores possible moves, transitioning between game states until a
+-- solution is found or all possibilities are exhausted.
+--
+-- The main function, 'solve', takes an initial board layout and a target
+-- location, and returns a list of game states and the corresponding sequence of
+-- moves that lead to a win. If no solution is possible, it returns 'Nothing'.
 module SolveTotM2 (solve) where
 
 import           Control.Monad

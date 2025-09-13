@@ -1,12 +1,28 @@
 {-# LANGUAGE PatternSynonyms #-}
+
+-- |
+-- Module      : TotM2
+-- Description : Bit-packed implementation of the Gem Seeker minigame solver
+-- Copyright   : (c) 2025, axionbuster
+-- License     : BSD-3-Clause
+-- Maintainer  : axionbuster
+--
+-- This module provides the core data types and game mechanics for a solver for
+-- the Gem Seeker minigame from Tomb of the Mask. It features a bit-packed
+-- representation of the game board for memory efficiency, where each cell is
+-- encoded using two bits. This design is optimized for performance-critical
+-- scenarios, such as pathfinding in large game states.
+--
+-- The main data structure, 'Game', encapsulates the entire state of the game,
+-- including the board, target location, and counts of gems and bats. Game
+-- state transitions are handled by 'moveGame', which simulates the effect of
+-- gravity in one of the four cardinal directions.
 module TotM2
- ( Game(..), Direction(..), Exc(..), Cell, pattern Air
- , pattern Bat, pattern Gem, pattern Obs
+ ( Game(..), Direction(..), Exc(..), IA, Cell
+ , pattern Air, pattern Bat, pattern Gem, pattern Obs
  , moveGame
  , buildGame
- , SA(..)
- , w2cell, cell2w, readSA, writeSA
- , IA(..), teardownGameBoard
+ , teardownGameBoard
  ) where
 
 import           Control.Monad
@@ -19,18 +35,43 @@ import           Data.Array.ST
 import           Data.Bifunctor
 import           Data.Bits
 import           Data.Hashable
+import           Data.Word
 import           GHC.Generics
-import           TotM                    (Cell, pattern Air, pattern Bat,
-                                          pattern Gem, pattern Obs)
 
--- | Immutable array
+-- | We use two bits to encode four possibilities for each block: air (0),
+-- bat (1), gem (2), and obstacle (wall; 3). Functions that say they take
+-- 'Cell's require that all bits but the least significant two bits are
+-- zero, and any function that outputs a 'Cell' or 'Cell's will make sure
+-- that no value greater than 3 will be produced. See the bundled pattern
+-- synonyms 'Air', 'Bat', 'Gem', and 'Obs' - they are marked @COMPLETE@
+-- for convenience in pattern matching.
+type Cell = Word8
+
+pattern Air, Bat, Gem, Obs :: Cell
+-- | 0
+pattern Air = 0b00
+-- | 1
+pattern Bat = 0b01
+-- | 2
+pattern Gem = 0b10
+-- | 3
+pattern Obs = 0b11
+{-# COMPLETE Air, Bat, Gem, Obs #-}
+
+-- | Immutable array, two-bit encoded. This is internally a bit-packed array.
+-- Each row is made up of words that each contain up to 16 or 32 pairs of
+-- bits, as compactly as possible, from the least significant words, and
+-- from the least significant bits. No compression is done /across/ the rows.
+--
+-- NOTE: 'IA' is a private type.
 newtype IA = IA (UArray (Int, Int) Word) deriving newtype (Eq, Ord)
 
+-- | Only the internal 'ByteArray' is used for hashing.
 instance Hashable IA where
  hashWithSalt salt ~(IA (UArray _ _ _ ba)) = hashWithSalt salt (ByteArray ba)
  {-# INLINE hashWithSalt #-}
 
--- | Stateful array, bit-packed
+-- | Stateful array, bit-packed. See 'IA' for the layout information.
 newtype SA s = SA (STUArray s (Int, Int) Word)
 
 w2cell :: Word -> Cell
@@ -54,13 +95,17 @@ writeSA (SA s) (r, c) v = case quotRemWord c of
   writeArray s (r, cq) w3
 {-# iNLINE writeSA #-}
 
+-- we take into account the native word size
 quotRemWord :: Int -> (Int, Int)
 quotRemWord n = case finiteBitSize (0 :: Word) of
  -- two bits each
  64 -> (n .>>. 5, n .&. 0b11111) -- 32
  32 -> (n .>>. 4, n .&.  0b1111) -- 16
  _  -> error "quotRemWord: unknown finiteBitSize of Word"
+{-# INLINE quotRemWord #-}
 
+-- we use a mutable unboxed array instead of a MutVar# (~ IORef, STRef _)
+-- because the latter is boxed.
 newtype IntRef s = IR (STUArray s Int Int)
 newIR :: Int -> ST s (IntRef s)
 newIR = fmap IR . newArray (0, 0)
@@ -87,7 +132,7 @@ data MGame s =
   Int -- width
   (IntRef s) -- gem count
 
--- | If we won, we wanna see the outcome
+-- | Game over. Either we win and know the final board state, or we lose.
 data Exc a = Won a | Lost deriving (Eq, Ord, Generic)
 instance Hashable a => Hashable (Exc a)
 
@@ -169,6 +214,7 @@ chain game@(MGame board target h w ngems) next = go0 where
      unless (movable that') $ go0 here -- if it did, try again.
 {-# INLINE chain #-}
 
+-- | Up, down, left, or right
 data Direction = DirUp | DirDown | DirLeft | DirRight
  deriving (Show, Eq)
 
@@ -189,7 +235,7 @@ moveGameTmpl game@(Game (IA board) target gems h w) next
    chain mgame next (r, c)
   let
    freezeGame (MGame mb _ h' w' mg) = do
-    board' <- IA <$> case mb of SA m -> unsafeFreeze m
+    board' <- case mb of SA m -> IA <$> unsafeFreeze m
     gems' <- readIR mg
     pure $ Game board' target gems' h' w'
   case res of
@@ -202,12 +248,14 @@ moveGameTmpl game@(Game (IA board) target gems h w) next
     else Right game'
 {-# INLINE moveGameTmpl #-}
 
--- | Change the direction of gravity, causing movable pieces to move.
+-- | Change the direction of gravity, causing movable pieces
+-- (i.e., 'Gem' and 'Bat') to move.
+--
 -- If this function returns a 'Left' value, the game is over. Otherwise
 -- ('Right'), the game is ongoing.
 moveGame :: Game -> Direction -> Either (Exc Game) Game
 moveGame game = \case
- DirUp ->    moveGameTmpl game $ first (subtract 1)
- DirDown ->  moveGameTmpl game $ first (+ 1)
+ DirUp ->    moveGameTmpl game $ first  (subtract 1)
+ DirDown ->  moveGameTmpl game $ first  (+ 1)
  DirLeft ->  moveGameTmpl game $ second (subtract 1)
  DirRight -> moveGameTmpl game $ second (+ 1)

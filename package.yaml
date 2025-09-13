@@ -66,31 +66,6 @@ executables:
     - gemssearch002
     - unliftio
 
-  gemssearch002-v2-exe:
-    main:               Main.hs
-    source-dirs:        app-v2
-    ghc-options:
-    - -threaded
-    - -rtsopts
-    - -with-rtsopts=-N
-    dependencies:
-    - gemssearch002
-    - unliftio
-  
-  # gemssearch002-exe-prof:
-  #   main:                Main.hs
-  #   source-dirs:         app
-  #   ghc-options:
-  #   - -threaded
-  #   - -rtsopts
-  #   - -with-rtsopts=-N
-  #   - -prof
-  #   - -fprof-auto
-  #   - -fprof-cafs
-  #   dependencies:
-  #   - gemssearch002
-  #   - unliftio
-
 tests:
   gemssearch002-test:
     main:                Spec.hs
@@ -99,9 +74,6 @@ tests:
     - -threaded
     - -rtsopts
     - -with-rtsopts=-N
-    - -Wno-x-partial
-    - -Wno-unrecognised-warning-flags
     dependencies:
     - gemssearch002
     - hspec
-    - hspec-discover
