@@ -43,6 +43,13 @@ ghc-options:
 - -O2
 - -ddump-to-file
 - -ddump-simpl
+# Core diff hygiene flags
+- -dsuppress-uniques
+- -dsuppress-coercions
+- -dsuppress-module-prefixes
+- -dsuppress-idinfo
+- -dsuppress-type-applications
+- -dsuppress-type-signatures
 
 language: GHC2024
 default-extensions:

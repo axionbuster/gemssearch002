@@ -211,7 +211,9 @@ chain game@(MGame board target h w ngems) next = go0 where
 
 -- | Up, down, left, or right
 data Direction = DirUp | DirDown | DirLeft | DirRight
- deriving (Show, Eq)
+ deriving (Eq, Ord, Show, Enum, Bounded, Generic)
+
+instance Hashable Direction
 
 -- GHC's ability to optimize away the one-shot list in `forM_ [1..123456] ..`
 -- is still unreliable, as of GHC 9.12.2, so we express our loop directly.
