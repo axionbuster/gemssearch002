@@ -93,7 +93,7 @@ writeSA (SA s) (r, c) v = case quotRemWord c of
   let w2 = w1 .&. complement (0b11 .<<. (2 * cr))
       w3 = w2 .|. (cell2w v .<<. (2 * cr))
   writeArray s (r, cq) w3
-{-# iNLINE writeSA #-}
+{-# INLINE writeSA #-}
 
 -- we take into account the native word size
 quotRemWord :: Int -> (Int, Int)

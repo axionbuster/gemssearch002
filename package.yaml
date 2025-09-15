@@ -41,9 +41,6 @@ ghc-options:
 - -Wpartial-fields
 - -Wredundant-constraints
 - -O2
-- -threaded
-- -rtsopts
-- -with-rtsopts=-N
 - -ddump-to-file
 - -ddump-simpl
 
