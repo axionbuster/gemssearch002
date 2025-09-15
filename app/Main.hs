@@ -4,6 +4,8 @@ import           Data.Foldable
 import           Data.Function
 import qualified Data.List          as List
 import           SolveTotM2
+import           System.Environment (getArgs)
+import           System.Exit        (exitFailure)
 import           Text.Printf
 import           TotM2
 
@@ -38,6 +40,17 @@ forI_ s e f = go s where go i = when (i <= e) $ f i >> go (i + 1)
 
 main :: IO ()
 main = do
+ args <- getArgs
+ case args of
+  [] -> pure ()
+  xs -> do
+   putStrLn
+    "Unexpected command-line arguments provided. \
+    \This program reads from standard input only."
+   putStrLn "Arguments:"
+   for_ xs $ \a -> putStrLn ("  " ++ show a)
+   putStrLn "Exiting with failure."
+   exitFailure
  ncases <- readLn
  forI_ 1 ncases $ \casenum -> do
   printf "Test case %v:\nyes\n" casenum

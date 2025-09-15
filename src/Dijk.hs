@@ -156,7 +156,6 @@ lookupCost k m = case M.lookup k m of
  Just Start           -> 0
  Just (Step cost _ _) -> cost
  Nothing              -> maxBound
-{-# INLINE lookupCost #-}
 
 {- |
 Run Dijkstra's shortest path algorithm to find the cheapest path to any
@@ -246,7 +245,6 @@ dijk weight neighbors stop start = entry where
       )
     go
    Nothing -> (`Dijk` Nothing) <$!> gets snd
-{-# INLINE dijk #-}
 
 {- |
 Reconstruct the optimal path from start to the target state found by the search.
@@ -306,4 +304,3 @@ recon (Dijk costs (Just target)) = entry where
  go k ks hs = case costs M.! k of
   Step _ k' h' -> go k' (k : ks) (h' : hs)
   Start        -> (k : ks, hs)
-{-# INLINE recon #-}
