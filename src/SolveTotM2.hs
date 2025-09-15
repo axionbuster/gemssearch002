@@ -29,30 +29,22 @@ solve board target = do
   game0 = buildGame (h + 1) (w + 1) target (board !)
  if _game'gemCnt game0 == 0 then error "solve: gems == 0" else do
   let
-   isVertical DirUp   = True
-   isVertical DirDown = True
-   isVertical _       = False
-   trav :: (Either (Exc Game) Game, Maybe Direction) -> ForM_ (Direction, (Either (Exc Game) Game, Maybe Direction))
-   trav (Right game, lastDir) = \f -> do
-    let
-     action d = f (d, (moveGame game d, Just d))
-     -- after a vertical move, only horizontal moves are allowed and vice-versa.
-     -- if there's no previous move, all directions are possible.
-     possibleMoves = case lastDir of
-      Nothing -> [DirRight, DirLeft, DirUp, DirDown]
-      Just ld -> if isVertical ld
-       then [DirRight, DirLeft]
-       else [DirUp, DirDown]
-    forM_ possibleMoves action
+   trav :: Either (Exc Game) Game -> ForM_ (Direction, Either (Exc Game) Game)
+   trav (Right game) = \f -> do
+    let action d = f (d, moveGame game d)
+    -- order doesn't matter, since we use the same (pure) game state (game).
+    void $ action DirRight
+    void $ action DirLeft
+    void $ action DirUp
+    void $ action DirDown
    trav _ = const $ pure ()
-   done (Left Won {}, _) = True
-   done _                = False
-  case dijk (\_ _ -> 1) trav done (Right game0, Nothing) of
+   done (Left Won {}) = True
+   done  _            = False
+  case dijk (\_ _ -> 1) trav done (Right game0) of
    outcome -> case recon outcome of
     ([], _, _) -> Nothing
     (states, steps, _) -> do
-     let
-      toGame (Right g, _)      = g
-      toGame (Left (Won g), _) = g
-      toGame (Left Lost, _)    = error "solve: losing game in winningstrategy"
+     let toGame (Right g)      = g
+         toGame (Left (Won g)) = g
+         toGame (Left Lost)    = error "solve: losing game in winning strategy"
      Just (toGame <$> states, steps)

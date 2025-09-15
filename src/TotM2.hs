@@ -34,6 +34,7 @@ import           Data.Array.Byte
 import           Data.Array.ST
 import           Data.Bifunctor
 import           Data.Bits
+import           Data.Functor
 import           Data.Hashable
 import           Data.Word
 import           GHC.Generics
@@ -68,7 +69,7 @@ newtype IA = IA (UArray (Int, Int) Word) deriving newtype (Eq, Ord)
 
 -- | Only the internal 'ByteArray' is used for hashing.
 instance Hashable IA where
- hashWithSalt salt ~(IA (UArray _ _ _ ba)) = hashWithSalt salt (ByteArray ba)
+ hashWithSalt salt (IA (UArray _ _ _ ba)) = hashWithSalt salt (ByteArray ba)
 
 -- | Stateful array, bit-packed. See 'IA' for the layout information.
 newtype SA s = SA (STUArray s (Int, Int) Word)
@@ -81,8 +82,7 @@ cell2w = fromIntegral
 
 readSA :: SA s -> (Int, Int) -> ST s Cell
 readSA (SA sa) (r, c) = case quotRemWord c of
- (cq, cr) -> (\w -> w2cell $ (w .>>. (2 * cr)) .&. 0b11) <$!>
-  readArray sa (r, cq)
+ (cq, cr) -> readArray sa (r, cq) <&> \w -> w2cell ((w .>>. (2 * cr)) .&. 0b11)
 
 writeSA :: SA s -> (Int, Int) -> Cell -> ST s ()
 writeSA (SA s) (r, c) v = case quotRemWord c of
@@ -194,7 +194,7 @@ chain game@(MGame board target h w ngems) next = go0 where
        else do
         lift $ writeIR ngems 0
         lift $ writeSA board here Air
-        throwError $! Won game
+        throwError $ Won game
      Air -> do
       lift $ do
        writeSA board there this
