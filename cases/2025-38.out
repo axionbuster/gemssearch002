@@ -972,3 +972,238 @@ Step 25: Apply gravity DirRight
 .....
 
 Won!
+Test case 7:
+yes
+Initial state:
+#%...
+@.#..
+%.*..
+..#..
+..#..
+..#..
+
+Step 1: Apply gravity DirDown
+#....
+..#..
+..*..
+..#..
+@.#..
+%%#..
+
+Step 2: Apply gravity DirRight
+#....
+..#..
+..*..
+..#..
+.@#..
+%%#..
+
+Step 3: Apply gravity DirUp
+#@...
+%%#..
+..*..
+..#..
+..#..
+..#..
+
+Step 4: Apply gravity DirRight
+#...@
+%%#..
+..*..
+..#..
+..#..
+..#..
+
+Step 5: Apply gravity DirUp
+#%..@
+%.#..
+..*..
+..#..
+..#..
+..#..
+
+Step 6: Apply gravity DirRight
+#..%@
+.%#..
+..*..
+..#..
+..#..
+..#..
+
+Step 7: Apply gravity DirUp
+#%.%@
+..#..
+..*..
+..#..
+..#..
+..#..
+
+Step 8: Apply gravity DirRight
+#.%%@
+..#..
+..*..
+..#..
+..#..
+..#..
+
+Step 9: Apply gravity DirDown
+#.%..
+..#..
+..*..
+..#..
+..#..
+..#%@
+
+Step 10: Apply gravity DirRight
+#...%
+..#..
+..*..
+..#..
+..#..
+..#%@
+
+Step 11: Apply gravity DirDown
+#....
+..#..
+..*..
+..#..
+..#.%
+..#%@
+
+Step 12: Apply gravity DirLeft
+#....
+..#..
+..*..
+..#..
+..#%.
+..#%@
+
+Step 13: Apply gravity DirUp
+#..%@
+..#%.
+..*..
+..#..
+..#..
+..#..
+
+Step 14: Apply gravity DirRight
+#..%@
+..#.%
+..*..
+..#..
+..#..
+..#..
+
+Step 15: Apply gravity DirDown
+#....
+..#..
+..*..
+..#..
+..#.@
+..#%%
+
+Step 16: Apply gravity DirLeft
+#....
+..#..
+..*..
+..#..
+..#@.
+..#%%
+
+Step 17: Apply gravity DirUp
+#..@%
+..#%.
+..*..
+..#..
+..#..
+..#..
+
+Step 18: Apply gravity DirLeft
+#@%..
+..#%.
+..*..
+..#..
+..#..
+..#..
+
+Step 19: Apply gravity DirDown
+#.%..
+..#..
+..*..
+..#..
+..#..
+.@#%.
+
+Step 20: Apply gravity DirLeft
+#%...
+..#..
+..*..
+..#..
+..#..
+@.#%.
+
+Step 21: Apply gravity DirUp
+#%.%.
+@.#..
+..*..
+..#..
+..#..
+..#..
+
+Step 22: Apply gravity DirLeft
+#%%..
+@.#..
+..*..
+..#..
+..#..
+..#..
+
+Step 23: Apply gravity DirDown
+#.%..
+..#..
+..*..
+..#..
+..#..
+@%#..
+
+Step 24: Apply gravity DirLeft
+#%...
+..#..
+..*..
+..#..
+..#..
+@%#..
+
+Step 25: Apply gravity DirDown
+#....
+..#..
+..*..
+..#..
+.%#..
+@%#..
+
+Step 26: Apply gravity DirLeft
+#....
+..#..
+..*..
+..#..
+%.#..
+@%#..
+
+Step 27: Apply gravity DirUp
+#%...
+%.#..
+@.*..
+..#..
+..#..
+..#..
+
+Step 28: Apply gravity DirRight
+#...%
+.%#..
+..*..
+..#..
+..#..
+..#..
+
+Won!
